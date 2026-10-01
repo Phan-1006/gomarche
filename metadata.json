@@ -1,0 +1,6 @@
+{
+  "name": "Gomarché - Hypermarché en Ligne",
+  "description": "Gomarché : Supermarché et hypermarché en ligne avec paiement Mobile Money (Airtel Money, Orange Money, M-Pesa, AfriMoney). Vos courses livrées à domicile en USD et CDF.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
