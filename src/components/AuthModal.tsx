@@ -8,11 +8,14 @@ import {
   ShieldCheck,
   Check,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   Briefcase,
   Store,
   Truck,
   Sparkles,
+  Copy,
+  ExternalLink,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -30,11 +33,23 @@ export const AuthModal: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
+  const [copiedDomain, setCopiedDomain] = useState<string | null>(null);
 
   // Staff login state
   const [staffEmail, setStaffEmail] = useState('');
   const [staffPassword, setStaffPassword] = useState('');
   const [staffError, setStaffError] = useState('');
+
+  const handleCopyDomain = (dom: string) => {
+    try {
+      navigator.clipboard.writeText(dom);
+      setCopiedDomain(dom);
+      setTimeout(() => setCopiedDomain(null), 2500);
+    } catch {
+      // Fallback
+    }
+  };
 
   // Reset errors on open
   useEffect(() => {
@@ -43,6 +58,8 @@ export const AuthModal: React.FC = () => {
       setSuccessMessage('');
       setStaffError('');
       setGoogleLoading(false);
+      setUnauthorizedDomain(null);
+      setCopiedDomain(null);
     }
   }, [isAuthOpen]);
 
@@ -52,6 +69,7 @@ export const AuthModal: React.FC = () => {
   const handleGoogleSignIn = async () => {
     setErrorMessage('');
     setSuccessMessage('');
+    setUnauthorizedDomain(null);
     setGoogleLoading(true);
 
     try {
@@ -61,10 +79,19 @@ export const AuthModal: React.FC = () => {
       if (res.success) {
         setIsAuthOpen(false);
       } else {
+        if (res.isUnauthorizedDomain) {
+          setUnauthorizedDomain(res.domain || (typeof window !== 'undefined' ? window.location.hostname : ''));
+        }
         setErrorMessage(res.message || 'Échec de la connexion avec Google.');
       }
     } catch (err: any) {
       setGoogleLoading(false);
+      if (
+        err?.code === 'auth/unauthorized-domain' ||
+        (err?.message && err.message.toLowerCase().includes('unauthorized-domain'))
+      ) {
+        setUnauthorizedDomain(typeof window !== 'undefined' ? window.location.hostname : '');
+      }
       setErrorMessage(err.message || 'Impossible de finaliser la connexion Google.');
     }
   };
@@ -237,12 +264,91 @@ export const AuthModal: React.FC = () => {
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
-            {errorMessage && (
+            {unauthorizedDomain ? (
+              <div className="p-4 bg-amber-50/90 border border-amber-300 rounded-2xl text-left space-y-3 shadow-xs animate-in fade-in duration-200">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-black text-amber-900">
+                      Domaine non autorisé dans Firebase
+                    </h4>
+                    <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                      Firebase bloque l'authentification Google tant que ce domaine n'est pas ajouté dans la liste des <strong>Domaines autorisés</strong> du projet <strong>gomarche-c2476</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-amber-200 space-y-2">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
+                    Copier le domaine à autoriser :
+                  </span>
+
+                  <div className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                    <code className="text-xs font-mono font-bold text-gray-800 break-all">{unauthorizedDomain}</code>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyDomain(unauthorizedDomain)}
+                      className="px-2.5 py-1 text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-md shrink-0 flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      {copiedDomain === unauthorizedDomain ? (
+                        <>
+                          <Check className="w-3 h-3" /> Copié !
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" /> Copier
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {unauthorizedDomain !== 'gomarche.vercel.app' && (
+                    <div className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                      <code className="text-xs font-mono font-bold text-gray-800">gomarche.vercel.app</code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyDomain('gomarche.vercel.app')}
+                        className="px-2.5 py-1 text-[11px] font-bold bg-gray-800 hover:bg-gray-900 text-white rounded-md shrink-0 flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        {copiedDomain === 'gomarche.vercel.app' ? (
+                          <>
+                            <Check className="w-3 h-3" /> Copié !
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" /> Copier
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 text-[11px] text-amber-900">
+                  <div className="font-bold flex items-center justify-between">
+                    <span>Comment régler en 30 secondes :</span>
+                    <a
+                      href="https://console.firebase.google.com/project/gomarche-c2476/authentication/settings"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-700 hover:underline inline-flex items-center gap-1 font-bold"
+                    >
+                      Console Firebase &gt; Paramètres <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <ol className="list-decimal list-inside space-y-1 text-[11px] text-gray-700 bg-amber-100/60 p-2.5 rounded-lg border border-amber-200">
+                    <li>Ouvrez le lien ci-dessus vers les <strong>Paramètres d'authentification</strong>.</li>
+                    <li>Dans la section <strong>Domaines autorisés</strong>, cliquez sur <strong>Ajouter un domaine</strong>.</li>
+                    <li>Collez le domaine copié ci-dessus et validez. La connexion marchera instantanément !</li>
+                  </ol>
+                </div>
+              </div>
+            ) : errorMessage ? (
               <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
                 <span>{errorMessage}</span>
               </div>
-            )}
+            ) : null}
 
             {successMessage && (
               <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold rounded-xl flex items-center gap-2">

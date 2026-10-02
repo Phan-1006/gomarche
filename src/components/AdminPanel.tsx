@@ -30,10 +30,22 @@ import {
   KeyRound,
   AlertCircle,
   AlertTriangle,
+  Database,
+  ExternalLink,
+  RefreshCw,
+  Copy,
+  CheckCircle2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Category, Product, SiteConfig, User, Role, OrderStatus, ThemeStyle, DeliverySlotConfig } from '../types';
 import { AirtelMoneyLogo, OrangeMoneyLogo, MpesaLogo, AfriMoneyLogo } from './MobileMoneyLogos';
+import {
+  getActiveFirebaseConfig,
+  updateFirebaseConfig,
+  resetFirebaseConfig,
+  isUsingCustomFirebaseConfig,
+  FirebaseAppConfig,
+} from '../services/firebaseAuth';
 
 export const AdminPanel: React.FC = () => {
   const {
@@ -73,6 +85,29 @@ export const AdminPanel: React.FC = () => {
   const [adminPassMsg, setAdminPassMsg] = useState('');
   const [adminPassError, setAdminPassError] = useState('');
   const [googleClientIdInput, setGoogleClientIdInput] = useState(siteConfig.googleClientId || '');
+
+  // Firebase Gomarché configuration state
+  const initialFbConfig = getActiveFirebaseConfig();
+  const [fbProjectId, setFbProjectId] = useState(initialFbConfig.projectId || '');
+  const [fbApiKey, setFbApiKey] = useState(initialFbConfig.apiKey || '');
+  const [fbAuthDomain, setFbAuthDomain] = useState(initialFbConfig.authDomain || '');
+  const [fbAppId, setFbAppId] = useState(initialFbConfig.appId || '');
+  const [fbStorageBucket, setFbStorageBucket] = useState(initialFbConfig.storageBucket || '');
+  const [fbRawConfig, setFbRawConfig] = useState('');
+  const [fbSuccessMsg, setFbSuccessMsg] = useState('');
+  const [fbErrorMsg, setFbErrorMsg] = useState('');
+  const [isCustomFb, setIsCustomFb] = useState(isUsingCustomFirebaseConfig());
+  const [copiedDomainAdmin, setCopiedDomainAdmin] = useState<string | null>(null);
+
+  const handleCopyDomainAdmin = (val: string) => {
+    try {
+      navigator.clipboard.writeText(val);
+      setCopiedDomainAdmin(val);
+      setTimeout(() => setCopiedDomainAdmin(null), 2500);
+    } catch {
+      // Fallback
+    }
+  };
 
   // Category modal
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -273,6 +308,84 @@ export const AdminPanel: React.FC = () => {
   const handleSaveGoogleClientId = () => {
     updateSiteConfig({ googleClientId: googleClientIdInput.trim() });
     showSaveSuccess();
+  };
+
+  // Parse pasted raw Firebase config snippet
+  const handleParseRawFirebase = (raw: string) => {
+    setFbRawConfig(raw);
+    setFbErrorMsg('');
+    setFbSuccessMsg('');
+
+    try {
+      const extract = (key: string) => {
+        const m = raw.match(new RegExp(`["']?${key}["']?\\s*:\\s*["']([^"']+)["']`));
+        return m ? m[1].trim() : '';
+      };
+
+      const extractedApiKey = extract('apiKey');
+      const extractedAuthDomain = extract('authDomain');
+      const extractedProjectId = extract('projectId');
+      const extractedStorageBucket = extract('storageBucket');
+      const extractedAppId = extract('appId');
+
+      if (extractedProjectId) setFbProjectId(extractedProjectId);
+      if (extractedApiKey) setFbApiKey(extractedApiKey);
+      if (extractedAuthDomain) setFbAuthDomain(extractedAuthDomain);
+      if (extractedStorageBucket) setFbStorageBucket(extractedStorageBucket);
+      if (extractedAppId) setFbAppId(extractedAppId);
+
+      if (extractedProjectId || extractedApiKey) {
+        setFbSuccessMsg('Informations extraites automatiquement avec succès ! Vérifiez et cliquez sur "Connecter le projet Gomarché" ci-dessous.');
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleSaveFirebaseConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFbErrorMsg('');
+    setFbSuccessMsg('');
+
+    if (!fbProjectId.trim() || !fbApiKey.trim()) {
+      setFbErrorMsg('Le Project ID et la Clé API Firebase sont obligatoires.');
+      return;
+    }
+
+    try {
+      const newConfig: FirebaseAppConfig = {
+        projectId: fbProjectId.trim(),
+        apiKey: fbApiKey.trim(),
+        authDomain: fbAuthDomain.trim() || `${fbProjectId.trim()}.firebaseapp.com`,
+        storageBucket: fbStorageBucket.trim() || `${fbProjectId.trim()}.firebasestorage.app`,
+        appId: fbAppId.trim() || `1:635390144818:web:${fbProjectId.trim()}`,
+      };
+
+      await updateFirebaseConfig(newConfig);
+      setIsCustomFb(true);
+      setFbSuccessMsg(`Projet Firebase "${fbProjectId.trim()}" appliqué avec succès ! La connexion Google utilisera désormais ce projet.`);
+      showSaveSuccess();
+    } catch (err: any) {
+      setFbErrorMsg(err.message || 'Erreur lors de la mise à jour de la configuration Firebase.');
+    }
+  };
+
+  const handleResetFirebaseConfig = async () => {
+    try {
+      await resetFirebaseConfig();
+      const def = getActiveFirebaseConfig();
+      setFbProjectId(def.projectId || '');
+      setFbApiKey(def.apiKey || '');
+      setFbAuthDomain(def.authDomain || '');
+      setFbAppId(def.appId || '');
+      setFbStorageBucket(def.storageBucket || '');
+      setFbRawConfig('');
+      setIsCustomFb(false);
+      setFbSuccessMsg('Configuration réinitialisée vers le projet par défaut.');
+      showSaveSuccess();
+    } catch (err: any) {
+      setFbErrorMsg(err.message || 'Impossible de réinitialiser.');
+    }
   };
 
   return (
@@ -1253,60 +1366,266 @@ export const AdminPanel: React.FC = () => {
                 </form>
               </div>
 
-              {/* Box 2: Google Sign-In & OAuth Config */}
+              {/* Box 2: Firebase & Google Sign-In Config */}
               <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
-                      <path
-                        fill="#4285F4"
-                        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.9c2.28-2.1 3.64-5.2 3.64-9.15z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.9-3.05c-1.08.72-2.45 1.16-4.03 1.16-3.1 0-5.73-2.1-6.67-4.92H1.27v3.13C3.25 21.3 7.31 24 12 24z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.33 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.59H1.27C.46 8.21 0 10.05 0 12s.46 3.79 1.27 5.41l4.06-3.13z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.59l4.06 3.13c.94-2.82 3.57-4.97 6.67-4.97z"
-                      />
-                    </svg>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">Projet Firebase & Connexion Google</h4>
+                      <p className="text-xs text-gray-500">Lier le projet Firebase « gomarche »</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-900">Intégration Google Sign-In & OAuth</h4>
-                    <p className="text-xs text-gray-500">Google Identity Services (GSI)</p>
-                  </div>
+                  <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Projet {fbProjectId || 'gomarche-c2476'} actif
+                  </span>
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">
-                      Client ID Google Cloud (Optionnel)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ex: 636481156388-...apps.googleusercontent.com"
-                      value={googleClientIdInput}
-                      onChange={(e) => setGoogleClientIdInput(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs font-mono focus:outline-hidden focus:border-blue-600"
-                    />
-                    <p className="text-[11px] text-gray-400 mt-1">
-                      Si configuré, le bouton One-Tap officiel Google Identity Services sera activé. Sinon, le module de connexion Google interactive intégré assure la synchronisation.
-                    </p>
+                {/* Status explanation */}
+                <div className="p-3.5 rounded-2xl text-xs space-y-1.5 border bg-emerald-50/60 border-emerald-200 text-emerald-900">
+                  <p className="font-bold flex items-center gap-1.5">
+                    ✅ Connecté au projet officiel Gomarché ({fbProjectId || 'gomarche-c2476'}) :
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    La connexion Google s'exécute désormais sous le projet Firebase <strong>gomarche-c2476</strong>. Le projet « objets perdus » est totalement déconnecté et n'est plus utilisé.
+                  </p>
+                </div>
+
+                {fbErrorMsg && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                    <span>{fbErrorMsg}</span>
+                  </div>
+                )}
+
+                {fbSuccessMsg && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl flex items-center gap-2">
+                    <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+                    <span>{fbSuccessMsg}</span>
+                  </div>
+                )}
+
+                {/* Quick Paste Auto-Import */}
+                <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 space-y-2">
+                  <label className="block text-xs font-bold text-gray-800">
+                    ⚡ Remplissage rapide : Coller le code Firebase Web
+                  </label>
+                  <p className="text-[11px] text-gray-500">
+                    Copiez le bloc <code className="bg-gray-200 px-1 rounded text-[10px]">const firebaseConfig = &#123; ... &#125;</code> depuis la console Firebase et collez-le ici :
+                  </p>
+                  <textarea
+                    rows={3}
+                    placeholder="apiKey: '...', authDomain: 'gomarche.firebaseapp.com', projectId: 'gomarche', ..."
+                    value={fbRawConfig}
+                    onChange={(e) => handleParseRawFirebase(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-gray-300 bg-white focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+
+                {/* Form fields */}
+                <form onSubmit={handleSaveFirebaseConfig} className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Firebase Project ID *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: gomarche ou gomarche-12345"
+                        value={fbProjectId}
+                        onChange={(e) => setFbProjectId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-mono focus:outline-hidden focus:border-amber-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Clé API Web (apiKey) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: AIzaSy..."
+                        value={fbApiKey}
+                        onChange={(e) => setFbApiKey(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-mono focus:outline-hidden focus:border-amber-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Auth Domain
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ex: gomarche.firebaseapp.com"
+                        value={fbAuthDomain}
+                        onChange={(e) => setFbAuthDomain(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-mono focus:outline-hidden focus:border-amber-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        App ID
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ex: 1:123456789:web:abcdef..."
+                        value={fbAppId}
+                        onChange={(e) => setFbAppId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-mono focus:outline-hidden focus:border-amber-500"
+                      />
+                    </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleSaveGoogleClientId}
-                    className="w-full py-2.5 bg-gray-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2"
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Connecter le projet Gomarché</span>
+                    </button>
+
+                    {isCustomFb && (
+                      <button
+                        type="button"
+                        onClick={handleResetFirebaseConfig}
+                        className="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Réinitialiser</span>
+                      </button>
+                    )}
+                  </div>
+                </form>
+
+                {/* Instructions accordion / guide */}
+                <div className="border-t border-gray-200 pt-3 text-[11px] text-gray-500 space-y-1">
+                  <div className="flex items-center justify-between font-bold text-gray-700">
+                    <span>Où trouver ces identifiants dans Firebase ?</span>
+                    <a
+                      href="https://console.firebase.google.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline inline-flex items-center gap-0.5"
+                    >
+                      Ouvrir Firebase Console <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <ol className="list-decimal list-inside space-y-0.5 text-gray-500 pl-1">
+                    <li>Allez sur <strong>console.firebase.google.com</strong> et ouvrez votre projet <strong>gomarche</strong>.</li>
+                    <li>Cliquez sur l'engrenage ⚙️ <em>Paramètres du projet</em> en haut à gauche.</li>
+                    <li>Dans l'onglet <em>Général</em>, descendez à la section <em>Vos applications</em> (icône Web <code>&lt;/&gt;</code>).</li>
+                    <li>Copiez le bloc de code et collez-le dans la case ci-dessus !</li>
+                  </ol>
+                </div>
+              </div>
+
+              {/* Box 2.5: Authorized Domains for Firebase Authentication */}
+              <div className="bg-amber-50/70 rounded-3xl p-6 border-2 border-amber-200/80 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-xs">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-amber-950">
+                        Domaines Autorisés Firebase (Erreur auth/unauthorized-domain)
+                      </h4>
+                      <p className="text-xs text-amber-800">
+                        Requis pour autoriser la connexion Google sur votre site et en production
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href="https://console.firebase.google.com/project/gomarche-c2476/authentication/settings"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors shrink-0"
                   >
-                    <Save className="w-4 h-4 text-emerald-400" />
-                    <span>Sauvegarder la configuration Google</span>
-                  </button>
+                    <span>Ouvrir les Paramètres Firebase</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+
+                <div className="p-3.5 bg-white rounded-2xl border border-amber-200 text-xs text-gray-700 space-y-3">
+                  <p className="leading-relaxed">
+                    Si le message <code className="bg-red-50 text-red-700 px-1.5 py-0.5 rounded font-mono font-bold text-[11px]">Firebase: Error (auth/unauthorized-domain)</code> apparaît lors du clic sur Google, c'est que l'adresse web de votre site n'est pas encore enregistrée dans la console Firebase du projet <strong>gomarche-c2476</strong>.
+                  </p>
+
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold text-gray-900 block">
+                      Copiez ces domaines et ajoutez-les dans Firebase :
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {/* Vercel production domain */}
+                      <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-200">
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-bold block uppercase">Production Vercel</span>
+                          <code className="text-xs font-mono font-bold text-gray-800">gomarche.vercel.app</code>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyDomainAdmin('gomarche.vercel.app')}
+                          className="px-3 py-1.5 text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          {copiedDomainAdmin === 'gomarche.vercel.app' ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" /> Copié !
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" /> Copier
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Current Preview domain */}
+                      <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-200">
+                        <div className="min-w-0 pr-2">
+                          <span className="text-[10px] text-gray-400 font-bold block uppercase">Domaine Actuel</span>
+                          <code className="text-xs font-mono font-bold text-gray-800 truncate block">
+                            {typeof window !== 'undefined' ? window.location.hostname : 'localhost'}
+                          </code>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyDomainAdmin(typeof window !== 'undefined' ? window.location.hostname : 'localhost')}
+                          className="px-3 py-1.5 text-[11px] font-bold bg-gray-800 hover:bg-gray-900 text-white rounded-lg flex items-center gap-1 transition-colors shrink-0 cursor-pointer"
+                        >
+                          {copiedDomainAdmin === (typeof window !== 'undefined' ? window.location.hostname : 'localhost') ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" /> Copié !
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" /> Copier
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-100/50 p-3 rounded-xl border border-amber-200 space-y-1">
+                    <span className="font-bold text-amber-950 block text-xs">
+                      Procédure rapide (30 secondes dans Firebase) :
+                    </span>
+                    <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-amber-900 pl-1">
+                      <li>Ouvrez <a href="https://console.firebase.google.com/project/gomarche-c2476/authentication/settings" target="_blank" rel="noopener noreferrer" className="font-bold underline text-blue-700">la console Firebase &gt; Authentication &gt; Paramètres</a>.</li>
+                      <li>Dans l'onglet <strong>Paramètres</strong>, descendez à la section <strong>Domaines autorisés</strong>.</li>
+                      <li>Cliquez sur <strong>Ajouter un domaine</strong>, collez <code className="bg-white px-1 py-0.5 rounded font-mono font-bold">gomarche.vercel.app</code> et enregistrez.</li>
+                      <li>Faites de même avec le domaine actuel si vous testez en direct.</li>
+                    </ol>
+                  </div>
                 </div>
               </div>
             </div>

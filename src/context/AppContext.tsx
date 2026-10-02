@@ -72,7 +72,7 @@ interface AppContextType {
 
   // Auth & Roles
   login: (email: string, password?: string, name?: string, isGoogleAuth?: boolean) => { success: boolean; message?: string };
-  loginWithGoogle: () => Promise<{ success: boolean; message?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; message?: string; isUnauthorizedDomain?: boolean; domain?: string }>;
   logout: () => void;
   changeAdminPassword: (oldPass: string, newPass: string) => { success: boolean; message: string };
   
@@ -377,7 +377,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Real Google Sign-in with official Google OAuth / Firebase
-  const loginWithGoogle = async (): Promise<{ success: boolean; message?: string }> => {
+  const loginWithGoogle = async (): Promise<{
+    success: boolean;
+    message?: string;
+    isUnauthorizedDomain?: boolean;
+    domain?: string;
+  }> => {
     try {
       const res = await googleSignIn();
       if (!res?.user) {
@@ -448,6 +453,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       if (err.code === 'auth/cancelled-popup-request') {
         return { success: false, message: 'Demande de connexion annulée.' };
+      }
+      if (
+        err.code === 'auth/unauthorized-domain' ||
+        (err.message && err.message.toLowerCase().includes('unauthorized-domain'))
+      ) {
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
+        return {
+          success: false,
+          isUnauthorizedDomain: true,
+          domain: currentHost,
+          message: `Domaine non autorisé dans Firebase (${currentHost}). Ajoutez-le dans la console Firebase pour débloquer la connexion Google.`,
+        };
       }
       return { success: false, message: err.message || 'Échec de la connexion avec Google.' };
     }

@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
 import {
   getAuth,
   signInWithPopup,
@@ -7,11 +7,57 @@ import {
   onAuthStateChanged,
   User as FirebaseUser,
 } from 'firebase/auth';
-import firebaseConfig from '../../firebase-applet-config.json';
+import defaultFirebaseConfig from '../../firebase-applet-config.json';
 
-// Initialize Firebase App
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-export const auth = getAuth(app);
+export interface FirebaseAppConfig {
+  projectId: string;
+  appId: string;
+  apiKey: string;
+  authDomain: string;
+  firestoreDatabaseId?: string;
+  storageBucket?: string;
+  messagingSenderId?: string;
+  measurementId?: string;
+  oAuthClientId?: string;
+  recaptchaSiteKey?: string;
+}
+
+// Retrieve active configuration (custom Gomarché or default)
+export const getActiveFirebaseConfig = (): FirebaseAppConfig => {
+  try {
+    const custom = localStorage.getItem('gm_custom_firebase_config');
+    if (custom) {
+      const parsed = JSON.parse(custom);
+      if (parsed && parsed.projectId && parsed.apiKey && parsed.projectId !== 'gen-lang-client-0698707979') {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Could not read custom Firebase config from localStorage:', e);
+  }
+  return defaultFirebaseConfig as FirebaseAppConfig;
+};
+
+// Check if currently running on a custom Gomarché configuration
+export const isUsingCustomFirebaseConfig = (): boolean => {
+  try {
+    const custom = localStorage.getItem('gm_custom_firebase_config');
+    return !!custom;
+  } catch {
+    return false;
+  }
+};
+
+// Initialize or reinitialize Firebase App
+let activeApp = (() => {
+  const cfg = getActiveFirebaseConfig();
+  if (getApps().length === 0) {
+    return initializeApp(cfg);
+  }
+  return getApp();
+})();
+
+export let auth = getAuth(activeApp);
 
 // Configure Google Auth Provider with official Workspace & Sign-in scopes
 const provider = new GoogleAuthProvider();
@@ -24,6 +70,45 @@ provider.setCustomParameters({
 
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;
+
+/**
+ * Reinitialize Firebase with a new Gomarché project config
+ */
+export const updateFirebaseConfig = async (newConfig: FirebaseAppConfig): Promise<boolean> => {
+  try {
+    localStorage.setItem('gm_custom_firebase_config', JSON.stringify(newConfig));
+    // If apps exist, delete default app to reinitialize
+    if (getApps().length > 0) {
+      const current = getApp();
+      await deleteApp(current);
+    }
+    activeApp = initializeApp(newConfig);
+    auth = getAuth(activeApp);
+    return true;
+  } catch (err) {
+    console.error('Failed to update Firebase configuration:', err);
+    throw err;
+  }
+};
+
+/**
+ * Reset Firebase config back to default applet config
+ */
+export const resetFirebaseConfig = async (): Promise<boolean> => {
+  try {
+    localStorage.removeItem('gm_custom_firebase_config');
+    if (getApps().length > 0) {
+      const current = getApp();
+      await deleteApp(current);
+    }
+    activeApp = initializeApp(defaultFirebaseConfig);
+    auth = getAuth(activeApp);
+    return true;
+  } catch (err) {
+    console.error('Failed to reset Firebase configuration:', err);
+    throw err;
+  }
+};
 
 /**
  * Listen to auth state changes from Firebase
