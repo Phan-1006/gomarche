@@ -49,15 +49,20 @@ export const isUsingCustomFirebaseConfig = (): boolean => {
 };
 
 // Initialize or reinitialize Firebase App
-let activeApp = (() => {
+let activeApp: any = null;
+export let auth: any = null;
+
+try {
   const cfg = getActiveFirebaseConfig();
   if (getApps().length === 0) {
-    return initializeApp(cfg);
+    activeApp = initializeApp(cfg);
+  } else {
+    activeApp = getApp();
   }
-  return getApp();
-})();
-
-export let auth = getAuth(activeApp);
+  auth = getAuth(activeApp);
+} catch (e) {
+  console.warn('Initial Firebase app initialization warning:', e);
+}
 
 // Configure Google Auth Provider with official Workspace & Sign-in scopes
 const provider = new GoogleAuthProvider();
@@ -116,6 +121,10 @@ export const resetFirebaseConfig = async (): Promise<boolean> => {
 export const initFirebaseAuth = (
   onUserChanged: (user: FirebaseUser | null, token: string | null) => void
 ) => {
+  if (!auth) {
+    onUserChanged(null, null);
+    return () => {};
+  }
   return onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
     if (user) {
       try {
@@ -139,6 +148,9 @@ export const googleSignIn = async (): Promise<{
   user: FirebaseUser;
   accessToken: string;
 }> => {
+  if (!auth) {
+    throw new Error('Service d\'authentification indisponible. Rechargez la page.');
+  }
   try {
     isSigningIn = true;
     const result = await signInWithPopup(auth, provider);
@@ -159,5 +171,7 @@ export const googleSignIn = async (): Promise<{
  */
 export const firebaseLogout = async () => {
   cachedAccessToken = null;
-  await signOut(auth);
+  if (auth) {
+    await signOut(auth);
+  }
 };
