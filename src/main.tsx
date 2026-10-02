@@ -46,6 +46,17 @@ class ErrorBoundary extends React.Component<
   }
 }
 
+// Clean up any stale service worker caches to prevent white screen from old hashed bundles
+if (typeof window !== 'undefined' && 'caches' in window) {
+  caches.keys().then((names) => {
+    names.forEach((name) => {
+      if (name !== 'gomarche-cache-v3') {
+        caches.delete(name);
+      }
+    });
+  }).catch(() => {});
+}
+
 // Register Service Worker for PWA compliance (safe for Vite)
 if ('serviceWorker' in navigator && typeof import.meta !== 'undefined' && import.meta.env?.PROD) {
   window.addEventListener('load', () => {
