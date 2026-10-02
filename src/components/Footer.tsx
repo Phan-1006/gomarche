@@ -75,23 +75,31 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 text-xs">
         {/* Brand column */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-2xl shadow-md"
-              style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
-            >
-              G
-            </div>
+          <div className="flex items-center gap-3">
+            {siteConfig.customLogoUrl ? (
+              <img
+                src={siteConfig.customLogoUrl}
+                alt={siteConfig.siteName}
+                className="h-12 max-w-[180px] object-contain rounded-xl bg-white/5 p-1"
+              />
+            ) : (
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-2xl shadow-md shrink-0"
+                style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
+              >
+                G
+              </div>
+            )}
             <div>
-              <span className="text-2xl font-black text-white">Gomarché Goma</span>
+              <span translate="no" className="notranslate text-2xl font-black text-white">Gomarché Goma</span>
               <span className="text-[10px] uppercase font-bold text-gray-400 block -mt-1">
-                Le Grand Hypermarché en Ligne
+                Le Supermarché en Ligne à Goma
               </span>
             </div>
           </div>
 
           <p className="text-gray-400 leading-relaxed max-w-sm">
-            Gomarché est le service d'hypermarché en ligne exclusif à la ville de Goma (Nord-Kivu). Commandez vos produits d'épicerie, frais du terroir et produits ménagers avec paiement Mobile Money instantané et livraison géolocalisée.
+            <span translate="no" className="notranslate text-white font-semibold">Gomarché</span> est le service de supermarché en ligne exclusif à la ville de Goma (Nord-Kivu). Commandez vos produits d'épicerie, frais du terroir et produits ménagers avec paiement Mobile Money instantané et livraison géolocalisée.
           </p>
 
           <div className="space-y-1.5 text-gray-300">
@@ -170,10 +178,10 @@ export const Footer: React.FC = () => {
             Réglez vos courses en direct en USD ($) ou CDF (FC) par :
           </p>
           <div className="flex flex-col gap-2">
-            <AirtelMoneyLogo size="sm" />
-            <OrangeMoneyLogo size="sm" />
-            <MpesaLogo size="sm" />
-            <AfriMoneyLogo size="sm" />
+            <AirtelMoneyLogo size="sm" customLogoUrl={siteConfig.paymentGateways?.airtel?.customLogoUrl} />
+            <OrangeMoneyLogo size="sm" customLogoUrl={siteConfig.paymentGateways?.orange?.customLogoUrl} />
+            <MpesaLogo size="sm" customLogoUrl={siteConfig.paymentGateways?.mpesa?.customLogoUrl} />
+            <AfriMoneyLogo size="sm" customLogoUrl={siteConfig.paymentGateways?.afrimoney?.customLogoUrl} />
           </div>
         </div>
       </div>

@@ -39,13 +39,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, prominent = f
 
   return (
     <div
-      className={`group relative flex flex-col justify-between bg-white rounded-2xl border border-gray-200 transition-all duration-300 hover:shadow-xl hover:border-gray-300 hover:-translate-y-1 overflow-hidden ${
-        prominent ? 'p-3.5 sm:p-4' : 'p-3 sm:p-3.5'
+      className={`group relative flex flex-col justify-between bg-white rounded-2xl border border-gray-200 transition-all duration-300 hover:shadow-xl hover:border-gray-300 hover:-translate-y-0.5 overflow-hidden ${
+        prominent ? 'p-3 sm:p-4' : 'p-2.5 sm:p-3.5'
       }`}
     >
       <div>
         {/* Top Badges (Discount, Origin, Promo) */}
-        <div className="relative mb-2">
+        <div className="relative mb-1.5 sm:mb-2">
           {/* Image Container */}
           <div
             onClick={() => {
@@ -53,7 +53,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, prominent = f
               setActiveView('product_detail');
             }}
             className={`relative w-full rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center cursor-pointer ${
-              prominent ? 'h-48 sm:h-56' : 'h-40 sm:h-44'
+              prominent ? 'h-40 sm:h-56' : 'h-32 sm:h-44'
             }`}
           >
             <img
@@ -178,14 +178,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, prominent = f
             type="button"
             onClick={() => addToCart(product, 1)}
             disabled={!product.inStock}
-            className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs transform active:scale-95 ${
+            className={`w-full py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all shadow-xs transform active:scale-95 cursor-pointer ${
               product.inStock
                 ? 'bg-gray-900 hover:bg-[#E2001A] text-white'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
-            <ShoppingBag className="w-4 h-4" />
-            <span>{product.inStock ? 'Ajouter au panier' : 'Rupture'}</span>
+            <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">
+              {product.inStock ? 'Ajouter' : 'Rupture'}
+              <span className="hidden xs:inline">{product.inStock ? ' au panier' : ''}</span>
+            </span>
           </button>
         )}
       </div>

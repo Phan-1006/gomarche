@@ -22,9 +22,9 @@ export const HeroCarousel: React.FC = () => {
   const slide = banners[currentSlide];
 
   return (
-    <section className="relative overflow-hidden bg-gray-900 text-white rounded-2xl md:rounded-3xl shadow-xl mx-4 my-4 max-w-7xl md:mx-auto">
+    <section className="relative overflow-hidden bg-gray-900 text-white rounded-2xl md:rounded-3xl shadow-xl mx-3 my-3 sm:mx-4 sm:my-4 max-w-7xl md:mx-auto">
       {/* Background Image with Gradient Overlay */}
-      <div className="relative min-h-[380px] sm:min-h-[440px] md:min-h-[480px] flex items-center">
+      <div className="relative min-h-[300px] sm:min-h-[420px] md:min-h-[480px] flex items-center">
         <div className="absolute inset-0 z-0">
           <img
             src={slide.image}
@@ -36,26 +36,26 @@ export const HeroCarousel: React.FC = () => {
         </div>
 
         {/* Content Container */}
-        <div className="relative z-10 max-w-2xl px-6 sm:px-12 py-10">
+        <div className="relative z-10 max-w-2xl px-4 sm:px-12 py-6 sm:py-10">
           {/* Badge Tag */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wide uppercase shadow-md mb-4"
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-black tracking-wide uppercase shadow-md mb-2 sm:mb-4"
             style={{ backgroundColor: slide.badgeBg || siteConfig.primaryColor || '#E2001A' }}>
-            <Tag className="w-3.5 h-3.5" />
-            <span>{slide.tag || 'Offre Spéciale Hypermarché'}</span>
+            <Tag className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span>{slide.tag || 'Offre Spéciale Supermarché'}</span>
           </div>
 
-          {/* Headline (From JSON: "Everything you need, all in one place" / "Tout ce dont vous avez besoin, au même endroit") */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight text-white mb-3">
+          {/* Headline */}
+          <h1 className="text-xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight text-white mb-2 sm:mb-3">
             {slide.title}
           </h1>
 
           {/* Subtitle */}
-          <p className="text-sm sm:text-base md:text-lg text-gray-200 mb-6 font-normal max-w-xl leading-relaxed">
+          <p className="text-xs sm:text-base md:text-lg text-gray-200 mb-4 sm:mb-6 font-normal max-w-xl leading-relaxed line-clamp-2 sm:line-clamp-none">
             {slide.subtitle}
           </p>
 
           {/* CTA & Trust badges */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => {
@@ -64,35 +64,35 @@ export const HeroCarousel: React.FC = () => {
                 }
                 setActiveView('home');
               }}
-              className="px-6 sm:px-8 py-3.5 rounded-full font-black text-sm sm:text-base text-white shadow-lg transition-transform transform active:scale-95 hover:shadow-xl flex items-center gap-2"
+              className="px-4 sm:px-8 py-2.5 sm:py-3.5 rounded-full font-black text-xs sm:text-base text-white shadow-lg transition-transform transform active:scale-95 hover:shadow-xl flex items-center gap-1.5 sm:gap-2 cursor-pointer"
               style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
             >
               <span>{slide.ctaText || 'Faire mes courses'}</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             <button
               type="button"
               onClick={() => setActiveView('promotions')}
-              className="px-5 py-3.5 rounded-full font-bold text-sm bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/30 transition-colors"
+              className="px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-full font-bold text-xs sm:text-sm bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/30 transition-colors cursor-pointer"
             >
-              Voir les promos (-40%)
+              Promos (-40%)
             </button>
           </div>
 
           {/* Value props in hero */}
-          <div className="mt-8 pt-6 border-t border-white/20 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-gray-300">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Paiement Airtel, Orange, M-Pesa, AfriMoney</span>
+          <div className="mt-5 sm:mt-8 pt-4 sm:pt-6 border-t border-white/20 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 text-[11px] sm:text-xs text-gray-300">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+              <span className="truncate sm:overflow-visible">Paiement Mobile Money</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Truck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Livraison express à domicile</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+              <span className="truncate sm:overflow-visible">Livraison express Goma</span>
             </div>
             <div className="hidden sm:flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
-              <span>Garantie Qualité & Prix Bas</span>
+              <span>Garantie Fraîcheur & Prix Bas</span>
             </div>
           </div>
         </div>

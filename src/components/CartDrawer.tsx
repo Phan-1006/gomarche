@@ -25,6 +25,8 @@ export const CartDrawer: React.FC = () => {
   const progressToFreeDelivery = Math.min(100, (cartTotalUsd / freeDeliveryThreshold) * 100);
   const remainingForFreeDelivery = Math.max(0, freeDeliveryThreshold - cartTotalUsd);
 
+  const gateways = siteConfig.paymentGateways || {} as any;
+
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
       <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col justify-between transform transition-transform duration-300">
@@ -230,10 +232,10 @@ export const CartDrawer: React.FC = () => {
             <div className="bg-white p-2.5 rounded-xl border border-gray-200 flex items-center justify-between">
               <span className="text-[10px] text-gray-600 font-semibold">Paiement Mobile Money instantané :</span>
               <div className="flex items-center gap-1">
-                <AirtelMoneyLogo size="sm" showText={false} />
-                <OrangeMoneyLogo size="sm" showText={false} />
-                <MpesaLogo size="sm" showText={false} />
-                <AfriMoneyLogo size="sm" showText={false} />
+                <AirtelMoneyLogo size="sm" showText={false} customLogoUrl={gateways.airtel?.customLogoUrl} />
+                <OrangeMoneyLogo size="sm" showText={false} customLogoUrl={gateways.orange?.customLogoUrl} />
+                <MpesaLogo size="sm" showText={false} customLogoUrl={gateways.mpesa?.customLogoUrl} />
+                <AfriMoneyLogo size="sm" showText={false} customLogoUrl={gateways.afrimoney?.customLogoUrl} />
               </div>
             </div>
 

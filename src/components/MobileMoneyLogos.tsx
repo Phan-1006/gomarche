@@ -4,18 +4,43 @@ interface LogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
+  customLogoUrl?: string;
 }
 
 export const AirtelMoneyLogo: React.FC<LogoProps> = ({
   className = '',
   size = 'md',
   showText = true,
+  customLogoUrl,
 }) => {
   const sizeClasses = {
     sm: 'h-6 text-xs',
     md: 'h-9 text-sm',
     lg: 'h-12 text-base',
   }[size];
+
+  const imgHeightClass = {
+    sm: 'h-5 max-w-[80px]',
+    md: 'h-7 max-w-[110px]',
+    lg: 'h-9 max-w-[140px]',
+  }[size];
+
+  if (customLogoUrl) {
+    return (
+      <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white border border-gray-200 shadow-xs ${className}`}>
+        <img
+          src={customLogoUrl}
+          alt="Airtel Money"
+          className={`${imgHeightClass} object-contain`}
+          onError={(e) => {
+            // fallback if custom logo broken
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+        {showText && <span className="text-xs font-bold text-gray-800">Airtel Money</span>}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -34,12 +59,35 @@ export const OrangeMoneyLogo: React.FC<LogoProps> = ({
   className = '',
   size = 'md',
   showText = true,
+  customLogoUrl,
 }) => {
   const sizeClasses = {
     sm: 'h-6 text-xs',
     md: 'h-9 text-sm',
     lg: 'h-12 text-base',
   }[size];
+
+  const imgHeightClass = {
+    sm: 'h-5 max-w-[80px]',
+    md: 'h-7 max-w-[110px]',
+    lg: 'h-9 max-w-[140px]',
+  }[size];
+
+  if (customLogoUrl) {
+    return (
+      <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white border border-gray-200 shadow-xs ${className}`}>
+        <img
+          src={customLogoUrl}
+          alt="Orange Money"
+          className={`${imgHeightClass} object-contain`}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+        {showText && <span className="text-xs font-bold text-gray-800">Orange Money</span>}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -58,12 +106,35 @@ export const MpesaLogo: React.FC<LogoProps> = ({
   className = '',
   size = 'md',
   showText = true,
+  customLogoUrl,
 }) => {
   const sizeClasses = {
     sm: 'h-6 text-xs',
     md: 'h-9 text-sm',
     lg: 'h-12 text-base',
   }[size];
+
+  const imgHeightClass = {
+    sm: 'h-5 max-w-[80px]',
+    md: 'h-7 max-w-[110px]',
+    lg: 'h-9 max-w-[140px]',
+  }[size];
+
+  if (customLogoUrl) {
+    return (
+      <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white border border-gray-200 shadow-xs ${className}`}>
+        <img
+          src={customLogoUrl}
+          alt="Vodacom M-Pesa"
+          className={`${imgHeightClass} object-contain`}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+        {showText && <span className="text-xs font-bold text-gray-800">M-PESA</span>}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -82,12 +153,35 @@ export const AfriMoneyLogo: React.FC<LogoProps> = ({
   className = '',
   size = 'md',
   showText = true,
+  customLogoUrl,
 }) => {
   const sizeClasses = {
     sm: 'h-6 text-xs',
     md: 'h-9 text-sm',
     lg: 'h-12 text-base',
   }[size];
+
+  const imgHeightClass = {
+    sm: 'h-5 max-w-[80px]',
+    md: 'h-7 max-w-[110px]',
+    lg: 'h-9 max-w-[140px]',
+  }[size];
+
+  if (customLogoUrl) {
+    return (
+      <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white border border-gray-200 shadow-xs ${className}`}>
+        <img
+          src={customLogoUrl}
+          alt="AfriMoney"
+          className={`${imgHeightClass} object-contain`}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+        {showText && <span className="text-xs font-bold text-gray-800">AfriMoney</span>}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -106,16 +200,17 @@ export const PaymentMethodBadge: React.FC<{
   method: 'airtel_money' | 'orange_money' | 'mpesa' | 'afrimoney';
   size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
-}> = ({ method, size = 'md', showText = true }) => {
+  customLogoUrl?: string;
+}> = ({ method, size = 'md', showText = true, customLogoUrl }) => {
   switch (method) {
     case 'airtel_money':
-      return <AirtelMoneyLogo size={size} showText={showText} />;
+      return <AirtelMoneyLogo size={size} showText={showText} customLogoUrl={customLogoUrl} />;
     case 'orange_money':
-      return <OrangeMoneyLogo size={size} showText={showText} />;
+      return <OrangeMoneyLogo size={size} showText={showText} customLogoUrl={customLogoUrl} />;
     case 'mpesa':
-      return <MpesaLogo size={size} showText={showText} />;
+      return <MpesaLogo size={size} showText={showText} customLogoUrl={customLogoUrl} />;
     case 'afrimoney':
-      return <AfriMoneyLogo size={size} showText={showText} />;
+      return <AfriMoneyLogo size={size} showText={showText} customLogoUrl={customLogoUrl} />;
     default:
       return null;
   }

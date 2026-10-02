@@ -164,7 +164,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  // Sync state to localStorage
+  // Sync state to localStorage & Server API (for cross-device persistence)
+  useEffect(() => {
+    // 1. Fetch server-persisted site config for cross-device synchronization
+    fetch('/api/site-config')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((serverConfig) => {
+        if (serverConfig && typeof serverConfig === 'object' && Object.keys(serverConfig).length > 0) {
+          setSiteConfig((prev) => ({
+            ...prev,
+            ...serverConfig,
+            paymentGateways: {
+              ...prev.paymentGateways,
+              ...(serverConfig.paymentGateways || {}),
+            },
+          }));
+        }
+      })
+      .catch(() => {});
+
+    // 2. Fetch server-persisted products
+    fetch('/api/products')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((serverProds) => {
+        if (Array.isArray(serverProds) && serverProds.length > 0) {
+          setProducts(serverProds);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('gm_site_config_v2', JSON.stringify(siteConfig));
   }, [siteConfig]);
@@ -175,6 +204,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     localStorage.setItem('gm_products_v2', JSON.stringify(products));
+    // Persist products to server so changes by agents/admin appear on all devices
+    fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(products),
+    }).catch(() => {});
   }, [products]);
 
   useEffect(() => {
@@ -523,20 +558,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateSiteConfig = (newConfig: Partial<SiteConfig>) => {
-    setSiteConfig((prev) => ({ ...prev, ...newConfig }));
+    setSiteConfig((prev) => {
+      const updated = { ...prev, ...newConfig };
+      fetch('/api/site-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(() => {});
+      return updated;
+    });
   };
 
   const updatePaymentGateway = (gateway: keyof PaymentGatewayConfig, data: any) => {
-    setSiteConfig((prev) => ({
-      ...prev,
-      paymentGateways: {
-        ...prev.paymentGateways,
-        [gateway]: {
-          ...prev.paymentGateways[gateway],
-          ...data,
+    setSiteConfig((prev) => {
+      const updated = {
+        ...prev,
+        paymentGateways: {
+          ...prev.paymentGateways,
+          [gateway]: {
+            ...prev.paymentGateways[gateway],
+            ...data,
+          },
         },
-      },
-    }));
+      };
+      fetch('/api/site-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(() => {});
+      return updated;
+    });
   };
 
   const updateDeliverySlot = (slotId: string, updated: Partial<DeliverySlotConfig>) => {

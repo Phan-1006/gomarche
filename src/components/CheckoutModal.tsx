@@ -85,30 +85,32 @@ export const CheckoutModal: React.FC = () => {
 
   if (!isCheckoutOpen) return null;
 
+  const gateways = siteConfig.paymentGateways || {} as any;
+
   const operatorInfo = {
     airtel_money: {
-      name: 'Airtel Money RDC (Goma)',
+      name: gateways.airtel?.displayName || 'Airtel Money RDC (Goma)',
       color: '#E40000',
-      prefix: '097, 099, 098',
-      logo: <AirtelMoneyLogo size="md" />,
+      prefix: gateways.airtel?.phonePrefix || '097, 099, 098',
+      logo: <AirtelMoneyLogo size="md" customLogoUrl={gateways.airtel?.customLogoUrl} />,
     },
     orange_money: {
-      name: 'Orange Money RDC (Goma)',
+      name: gateways.orange?.displayName || 'Orange Money RDC (Goma)',
       color: '#FF6600',
-      prefix: '084, 085, 089',
-      logo: <OrangeMoneyLogo size="md" />,
+      prefix: gateways.orange?.phonePrefix || '084, 085, 089',
+      logo: <OrangeMoneyLogo size="md" customLogoUrl={gateways.orange?.customLogoUrl} />,
     },
     mpesa: {
-      name: 'Vodacom M-Pesa (Goma)',
+      name: gateways.mpesa?.displayName || 'Vodacom M-Pesa (Goma)',
       color: '#00A859',
-      prefix: '081, 082, 083',
-      logo: <MpesaLogo size="md" />,
+      prefix: gateways.mpesa?.phonePrefix || '081, 082, 083',
+      logo: <MpesaLogo size="md" customLogoUrl={gateways.mpesa?.customLogoUrl} />,
     },
     afrimoney: {
-      name: 'Africell AfriMoney (Goma)',
+      name: gateways.afrimoney?.displayName || 'Africell AfriMoney (Goma)',
       color: '#6C207E',
-      prefix: '090, 091',
-      logo: <AfriMoneyLogo size="md" />,
+      prefix: gateways.afrimoney?.phonePrefix || '090, 091',
+      logo: <AfriMoneyLogo size="md" customLogoUrl={gateways.afrimoney?.customLogoUrl} />,
     },
   }[selectedMethod];
 
@@ -470,10 +472,10 @@ export const CheckoutModal: React.FC = () => {
                         onChange={() => setSelectedMethod(method)}
                         className="accent-red-600"
                       />
-                      {method === 'airtel_money' && <AirtelMoneyLogo size="sm" />}
-                      {method === 'orange_money' && <OrangeMoneyLogo size="sm" />}
-                      {method === 'mpesa' && <MpesaLogo size="sm" />}
-                      {method === 'afrimoney' && <AfriMoneyLogo size="sm" />}
+                      {method === 'airtel_money' && <AirtelMoneyLogo size="sm" customLogoUrl={gateways.airtel?.customLogoUrl} />}
+                      {method === 'orange_money' && <OrangeMoneyLogo size="sm" customLogoUrl={gateways.orange?.customLogoUrl} />}
+                      {method === 'mpesa' && <MpesaLogo size="sm" customLogoUrl={gateways.mpesa?.customLogoUrl} />}
+                      {method === 'afrimoney' && <AfriMoneyLogo size="sm" customLogoUrl={gateways.afrimoney?.customLogoUrl} />}
                     </div>
                   </div>
                 );

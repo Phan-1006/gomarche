@@ -25,7 +25,7 @@ export const PromotionsView: React.FC = () => {
 
           <div className="inline-flex items-center gap-1.5 bg-amber-400 text-gray-950 font-black text-xs uppercase px-3 py-1 rounded-full shadow-sm mb-3">
             <Flame className="w-4 h-4 fill-current" />
-            <span>Offres Spéciales Hypermarché Goma</span>
+            <span>Offres Spéciales Supermarché Goma</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
@@ -33,14 +33,8 @@ export const PromotionsView: React.FC = () => {
           </h1>
 
           <p className="text-sm sm:text-base text-red-100 mt-2">
-            Profitez de réductions jusqu’à -40% sur vos articles préférés. Tous les produits en promotion sont gérés en direct par notre responsable des offres.
+            Profitez de réductions exceptionnelles jusqu’à -40% sur vos articles préférés avec livraison rapide partout à Goma.
           </p>
-
-          {promoCategory?.assignedAgentName && (
-            <p className="text-xs text-amber-200 mt-4 font-semibold">
-              🏷️ Rayon géré par : {promoCategory.assignedAgentName}
-            </p>
-          )}
         </div>
       </div>
 

@@ -144,7 +144,7 @@ const GomarcheContent: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col font-sans antialiased text-gray-900 transition-colors pb-16 md:pb-0"
+      className="min-h-screen flex flex-col font-sans antialiased text-gray-900 transition-colors pb-20 md:pb-0"
       style={{ backgroundColor: siteConfig.backgroundColor || '#F8F9FA' }}
     >
       {/* PWA Prompt bar */}

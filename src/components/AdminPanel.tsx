@@ -35,6 +35,8 @@ import {
   RefreshCw,
   Copy,
   CheckCircle2,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Category, Product, SiteConfig, User, Role, OrderStatus, ThemeStyle, DeliverySlotConfig } from '../types';
@@ -1120,79 +1122,639 @@ export const AdminPanel: React.FC = () => {
         {/* ===================== TAB 8: PAYMENT APIS ===================== */}
         {activeTab === 'payment_apis' && (
           <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-black text-gray-900">
-                Passerelles & API Mobile Money (Goma)
-              </h3>
-              <p className="text-xs text-gray-500">
-                Configuration des clés d'intégration pour validation instantanée automatique
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-3xl border border-gray-200">
+              <div>
+                <h3 className="text-lg font-black text-gray-900">
+                  Passerelles & Opérateurs Mobile Money (Goma)
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Configurez les 4 opérateurs RDC (Airtel, Vodacom, Orange, AfriMoney), modifiez leurs logos, et ajustez leurs identifiants marchands.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  4 Opérateurs Supportés
+                </span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Airtel */}
-              <div className="bg-white rounded-3xl p-5 border border-gray-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <AirtelMoneyLogo size="md" />
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
-                    Opérationnel
-                  </span>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Merchant ID Airtel Goma
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full text-xs font-mono border border-gray-300 rounded-xl p-2 bg-gray-50"
-                    value={siteConfig.paymentGateways.airtel.merchantId}
-                    onChange={(e) => updatePaymentGateway('airtel', { merchantId: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    API Key
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full text-xs font-mono border border-gray-300 rounded-xl p-2 bg-gray-50"
-                    value={siteConfig.paymentGateways.airtel.apiKey}
-                    onChange={(e) => updatePaymentGateway('airtel', { apiKey: e.target.value })}
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* OPERATOR 1: AIRTEL MONEY */}
+              {(() => {
+                const gateway = siteConfig.paymentGateways?.airtel || {
+                  merchantId: 'AIRTEL_GOMARCHE_GOMA',
+                  apiKey: '',
+                  secretKey: '',
+                  webhookUrl: '',
+                  enabled: true,
+                  sandboxMode: false,
+                  phonePrefix: '097, 099, 098',
+                  customLogoUrl: '',
+                  displayName: 'Airtel Money RDC',
+                  instructions: 'Validation instantanée par push USSD sur votre téléphone',
+                };
 
-              {/* M-Pesa */}
-              <div className="bg-white rounded-3xl p-5 border border-gray-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <MpesaLogo size="md" />
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
-                    Opérationnel
-                  </span>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Shortcode Till M-Pesa Goma
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full text-xs font-mono border border-gray-300 rounded-xl p-2 bg-gray-50"
-                    value={siteConfig.paymentGateways.mpesa.merchantId}
-                    onChange={(e) => updatePaymentGateway('mpesa', { merchantId: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Passkey
-                  </label>
-                  <input
-                    type="password"
-                    className="w-full text-xs font-mono border border-gray-300 rounded-xl p-2 bg-gray-50"
-                    value={siteConfig.paymentGateways.mpesa.passKey}
-                    onChange={(e) => updatePaymentGateway('mpesa', { passKey: e.target.value })}
-                  />
-                </div>
-              </div>
+                const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      if (event.target?.result) {
+                        updatePaymentGateway('airtel', { customLogoUrl: event.target.result as string });
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                };
+
+                return (
+                  <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-xs space-y-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <AirtelMoneyLogo size="md" customLogoUrl={gateway.customLogoUrl} />
+                        <div>
+                          <h4 className="text-sm font-black text-gray-900">{gateway.displayName || 'Airtel Money'}</h4>
+                          <span className="text-[10px] text-gray-500 font-mono">Préfixes : {gateway.phonePrefix || '097, 099, 098'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => updatePaymentGateway('airtel', { enabled: !gateway.enabled })}
+                          className={`text-xs font-bold px-3 py-1 rounded-full transition-colors cursor-pointer ${
+                            gateway.enabled
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-gray-100 text-gray-600 border border-gray-200'
+                          }`}
+                        >
+                          {gateway.enabled ? '✓ Activé' : 'Désactivé'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Logo Customizer */}
+                    <div className="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-200 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-gray-700 flex items-center gap-1.5">
+                          <ImageIcon className="w-3.5 h-3.5 text-red-600" />
+                          <span>Logo Airtel Money</span>
+                        </label>
+                        {gateway.customLogoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => updatePaymentGateway('airtel', { customLogoUrl: '' })}
+                            className="text-[11px] font-bold text-red-600 hover:underline"
+                          >
+                            Rétablir le logo officiel
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                            URL de l'image du logo
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="https://.../logo.png"
+                            className="w-full text-xs border border-gray-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-red-500"
+                            value={gateway.customLogoUrl || ''}
+                            onChange={(e) => updatePaymentGateway('airtel', { customLogoUrl: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                            Ou importer une image
+                          </label>
+                          <label className="flex items-center justify-center gap-1.5 w-full py-2 px-3 border border-dashed border-gray-300 rounded-xl text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors">
+                            <Upload className="w-3.5 h-3.5 text-gray-500" />
+                            <span>Choisir un fichier</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleLogoUpload}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Form Fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Nom affiché
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.displayName || 'Airtel Money RDC'}
+                          onChange={(e) => updatePaymentGateway('airtel', { displayName: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Merchant ID / Compte Goma
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.merchantId || ''}
+                          onChange={(e) => updatePaymentGateway('airtel', { merchantId: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Clé API (Live)
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.apiKey || ''}
+                          onChange={(e) => updatePaymentGateway('airtel', { apiKey: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Clé Secrète
+                        </label>
+                        <input
+                          type="password"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.secretKey || ''}
+                          onChange={(e) => updatePaymentGateway('airtel', { secretKey: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* OPERATOR 2: VODACOM M-PESA */}
+              {(() => {
+                const gateway = siteConfig.paymentGateways?.mpesa || {
+                  merchantId: 'VODA_MPESA_GOMA_883011',
+                  apiKey: '',
+                  passKey: '',
+                  webhookUrl: '',
+                  enabled: true,
+                  sandboxMode: false,
+                  phonePrefix: '081, 082, 083',
+                  customLogoUrl: '',
+                  displayName: 'Vodacom M-Pesa',
+                  instructions: 'Paiement sécurisé instantané avec confirmation PIN M-Pesa',
+                };
+
+                const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      if (event.target?.result) {
+                        updatePaymentGateway('mpesa', { customLogoUrl: event.target.result as string });
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                };
+
+                return (
+                  <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-xs space-y-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <MpesaLogo size="md" customLogoUrl={gateway.customLogoUrl} />
+                        <div>
+                          <h4 className="text-sm font-black text-gray-900">{gateway.displayName || 'Vodacom M-Pesa'}</h4>
+                          <span className="text-[10px] text-gray-500 font-mono">Préfixes : {gateway.phonePrefix || '081, 082, 083'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => updatePaymentGateway('mpesa', { enabled: !gateway.enabled })}
+                          className={`text-xs font-bold px-3 py-1 rounded-full transition-colors cursor-pointer ${
+                            gateway.enabled
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-gray-100 text-gray-600 border border-gray-200'
+                          }`}
+                        >
+                          {gateway.enabled ? '✓ Activé' : 'Désactivé'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Logo Customizer */}
+                    <div className="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-200 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-gray-700 flex items-center gap-1.5">
+                          <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Logo Vodacom M-Pesa</span>
+                        </label>
+                        {gateway.customLogoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => updatePaymentGateway('mpesa', { customLogoUrl: '' })}
+                            className="text-[11px] font-bold text-red-600 hover:underline"
+                          >
+                            Rétablir le logo officiel
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                            URL de l'image du logo
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="https://.../logo.png"
+                            className="w-full text-xs border border-gray-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-emerald-500"
+                            value={gateway.customLogoUrl || ''}
+                            onChange={(e) => updatePaymentGateway('mpesa', { customLogoUrl: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                            Ou importer une image
+                          </label>
+                          <label className="flex items-center justify-center gap-1.5 w-full py-2 px-3 border border-dashed border-gray-300 rounded-xl text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors">
+                            <Upload className="w-3.5 h-3.5 text-gray-500" />
+                            <span>Choisir un fichier</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleLogoUpload}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Form Fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Nom affiché
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.displayName || 'Vodacom M-Pesa'}
+                          onChange={(e) => updatePaymentGateway('mpesa', { displayName: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Shortcode Till / Merchant ID Goma
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.merchantId || ''}
+                          onChange={(e) => updatePaymentGateway('mpesa', { merchantId: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Clé API / App Key
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.apiKey || ''}
+                          onChange={(e) => updatePaymentGateway('mpesa', { apiKey: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Passkey M-Pesa
+                        </label>
+                        <input
+                          type="password"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.passKey || ''}
+                          onChange={(e) => updatePaymentGateway('mpesa', { passKey: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* OPERATOR 3: ORANGE MONEY */}
+              {(() => {
+                const gateway = siteConfig.paymentGateways?.orange || {
+                  merchantId: 'OM_GOMARCHE_GOMA_001',
+                  apiKey: '',
+                  secretKey: '',
+                  webhookUrl: '',
+                  enabled: true,
+                  sandboxMode: false,
+                  phonePrefix: '084, 085, 089',
+                  customLogoUrl: '',
+                  displayName: 'Orange Money RDC',
+                  instructions: 'Validation immédiate par notification Orange Money',
+                };
+
+                const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      if (event.target?.result) {
+                        updatePaymentGateway('orange', { customLogoUrl: event.target.result as string });
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                };
+
+                return (
+                  <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-xs space-y-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <OrangeMoneyLogo size="md" customLogoUrl={gateway.customLogoUrl} />
+                        <div>
+                          <h4 className="text-sm font-black text-gray-900">{gateway.displayName || 'Orange Money'}</h4>
+                          <span className="text-[10px] text-gray-500 font-mono">Préfixes : {gateway.phonePrefix || '084, 085, 089'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => updatePaymentGateway('orange', { enabled: !gateway.enabled })}
+                          className={`text-xs font-bold px-3 py-1 rounded-full transition-colors cursor-pointer ${
+                            gateway.enabled
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-gray-100 text-gray-600 border border-gray-200'
+                          }`}
+                        >
+                          {gateway.enabled ? '✓ Activé' : 'Désactivé'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Logo Customizer */}
+                    <div className="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-200 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-gray-700 flex items-center gap-1.5">
+                          <ImageIcon className="w-3.5 h-3.5 text-orange-500" />
+                          <span>Logo Orange Money</span>
+                        </label>
+                        {gateway.customLogoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => updatePaymentGateway('orange', { customLogoUrl: '' })}
+                            className="text-[11px] font-bold text-red-600 hover:underline"
+                          >
+                            Rétablir le logo officiel
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                            URL de l'image du logo
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="https://.../logo.png"
+                            className="w-full text-xs border border-gray-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-orange-500"
+                            value={gateway.customLogoUrl || ''}
+                            onChange={(e) => updatePaymentGateway('orange', { customLogoUrl: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                            Ou importer une image
+                          </label>
+                          <label className="flex items-center justify-center gap-1.5 w-full py-2 px-3 border border-dashed border-gray-300 rounded-xl text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors">
+                            <Upload className="w-3.5 h-3.5 text-gray-500" />
+                            <span>Choisir un fichier</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleLogoUpload}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Form Fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Nom affiché
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.displayName || 'Orange Money RDC'}
+                          onChange={(e) => updatePaymentGateway('orange', { displayName: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Merchant ID / Compte Goma
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.merchantId || ''}
+                          onChange={(e) => updatePaymentGateway('orange', { merchantId: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Clé API / Token
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.apiKey || ''}
+                          onChange={(e) => updatePaymentGateway('orange', { apiKey: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Clé Secrète Orange
+                        </label>
+                        <input
+                          type="password"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.secretKey || ''}
+                          onChange={(e) => updatePaymentGateway('orange', { secretKey: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* OPERATOR 4: AFRIMONEY */}
+              {(() => {
+                const gateway = siteConfig.paymentGateways?.afrimoney || {
+                  merchantId: 'AFRIMONEY_GOMARCHE_GOMA',
+                  apiKey: '',
+                  secretKey: '',
+                  webhookUrl: '',
+                  enabled: true,
+                  sandboxMode: false,
+                  phonePrefix: '090, 091',
+                  customLogoUrl: '',
+                  displayName: 'Africell AfriMoney',
+                  instructions: 'Validation immédiate par SMS ou USSD Africell',
+                };
+
+                const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      if (event.target?.result) {
+                        updatePaymentGateway('afrimoney', { customLogoUrl: event.target.result as string });
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                };
+
+                return (
+                  <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-xs space-y-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <AfriMoneyLogo size="md" customLogoUrl={gateway.customLogoUrl} />
+                        <div>
+                          <h4 className="text-sm font-black text-gray-900">{gateway.displayName || 'Africell AfriMoney'}</h4>
+                          <span className="text-[10px] text-gray-500 font-mono">Préfixes : {gateway.phonePrefix || '090, 091'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => updatePaymentGateway('afrimoney', { enabled: !gateway.enabled })}
+                          className={`text-xs font-bold px-3 py-1 rounded-full transition-colors cursor-pointer ${
+                            gateway.enabled
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-gray-100 text-gray-600 border border-gray-200'
+                          }`}
+                        >
+                          {gateway.enabled ? '✓ Activé' : 'Désactivé'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Logo Customizer */}
+                    <div className="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-200 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-gray-700 flex items-center gap-1.5">
+                          <ImageIcon className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Logo AfriMoney</span>
+                        </label>
+                        {gateway.customLogoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => updatePaymentGateway('afrimoney', { customLogoUrl: '' })}
+                            className="text-[11px] font-bold text-red-600 hover:underline"
+                          >
+                            Rétablir le logo officiel
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                            URL de l'image du logo
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="https://.../logo.png"
+                            className="w-full text-xs border border-gray-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-purple-500"
+                            value={gateway.customLogoUrl || ''}
+                            onChange={(e) => updatePaymentGateway('afrimoney', { customLogoUrl: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                            Ou importer une image
+                          </label>
+                          <label className="flex items-center justify-center gap-1.5 w-full py-2 px-3 border border-dashed border-gray-300 rounded-xl text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors">
+                            <Upload className="w-3.5 h-3.5 text-gray-500" />
+                            <span>Choisir un fichier</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleLogoUpload}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Form Fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Nom affiché
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.displayName || 'Africell AfriMoney'}
+                          onChange={(e) => updatePaymentGateway('afrimoney', { displayName: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Merchant ID / Compte Goma
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.merchantId || ''}
+                          onChange={(e) => updatePaymentGateway('afrimoney', { merchantId: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Clé API / Token
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.apiKey || ''}
+                          onChange={(e) => updatePaymentGateway('afrimoney', { apiKey: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Clé Secrète AfriMoney
+                        </label>
+                        <input
+                          type="password"
+                          className="w-full font-mono border border-gray-300 rounded-xl p-2 bg-gray-50/50"
+                          value={gateway.secretKey || ''}
+                          onChange={(e) => updatePaymentGateway('afrimoney', { secretKey: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}

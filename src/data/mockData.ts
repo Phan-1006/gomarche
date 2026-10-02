@@ -1,4 +1,5 @@
 import { Category, Product, SiteConfig, User, Order, UserActivity } from '../types';
+import persistedSiteConfig from './persistedSiteConfig.json';
 
 export const GOMA_QUARTIERS = [
   'Les Volcans',
@@ -483,7 +484,7 @@ export const INITIAL_USER_ACTIVITIES: UserActivity[] = [
 
 export const INITIAL_SITE_CONFIG: SiteConfig = {
   siteName: 'Gomarché Goma',
-  tagline: 'Le Grand Hypermarché en Ligne Exclusif à Goma • Livraison Express',
+  tagline: 'Le Supermarché en Ligne Exclusif à Goma • Livraison Express',
   logoType: 'badge',
   customLogoUrl: '',
   pwaIconUrl: '',
@@ -623,4 +624,5 @@ export const INITIAL_SITE_CONFIG: SiteConfig = {
   },
   adminPassword: 'admin',
   googleClientId: '',
+  ...(persistedSiteConfig && typeof persistedSiteConfig === 'object' ? (persistedSiteConfig as Partial<SiteConfig>) : {}),
 };

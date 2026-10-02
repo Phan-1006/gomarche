@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { ArrowRight, Sparkles, UserCheck, Flame } from 'lucide-react';
+import { ArrowRight, Sparkles, Flame, ChevronRight } from 'lucide-react';
 
 export const CategoryShowcase: React.FC = () => {
   const {
@@ -13,19 +13,19 @@ export const CategoryShowcase: React.FC = () => {
   } = useApp();
 
   return (
-    <section className="max-w-7xl mx-auto px-4 py-8">
+    <section className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 sm:mb-6 gap-2">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#E2001A] mb-1">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Tous nos univers</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
             Acheter par catégorie
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Chaque rayon est géré en direct par son agent dédié pour vous garantir fraîcheur et meilleurs prix.
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
+            Retrouvez tous vos produits frais, épicerie, boissons et articles du quotidien livrés à Goma.
           </p>
         </div>
 
@@ -33,7 +33,7 @@ export const CategoryShowcase: React.FC = () => {
           <button
             type="button"
             onClick={() => setSelectedCategoryFilter(null)}
-            className="text-xs font-bold text-[#E2001A] hover:underline flex items-center gap-1 self-start sm:self-auto"
+            className="text-xs font-bold text-[#E2001A] hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
           >
             <span>Afficher tous les rayons</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -41,8 +41,8 @@ export const CategoryShowcase: React.FC = () => {
         )}
       </div>
 
-      {/* Grid of Large Visual Category Cards (as requested: "large visual category cards") */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      {/* Grid of Visual Category Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
         {categories.map((cat) => {
           const productCount = products.filter((p) => p.categoryId === cat.id).length;
           const isSelected = selectedCategoryFilter === cat.id;
@@ -58,7 +58,7 @@ export const CategoryShowcase: React.FC = () => {
                   setActiveView('home');
                 }
               }}
-              className={`group relative overflow-hidden rounded-2xl bg-white border cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
+              className={`group relative overflow-hidden rounded-2xl bg-white border cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-98 ${
                 isSelected
                   ? 'border-[#E2001A] ring-2 ring-red-500 shadow-md'
                   : 'border-gray-200 hover:border-gray-300'
@@ -69,13 +69,14 @@ export const CategoryShowcase: React.FC = () => {
                 <img
                   src={cat.image}
                   alt={cat.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
 
                 {/* Badge if Promo */}
                 {cat.isPromoCategory && (
-                  <span className="absolute top-2 right-2 bg-[#E2001A] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                  <span className="absolute top-2 right-2 bg-[#E2001A] text-white text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                     <Flame className="w-3 h-3 fill-white" />
                     Promo
                   </span>
@@ -92,14 +93,10 @@ export const CategoryShowcase: React.FC = () => {
                 </div>
               </div>
 
-              {/* Bottom Card Footer: Assigned Agent details */}
-              <div className="p-2 sm:p-2.5 bg-white flex flex-col justify-between">
-                <div className="flex items-center gap-1.5 text-[10px] text-gray-600">
-                  <UserCheck className="w-3 h-3 text-emerald-600 shrink-0" />
-                  <span className="truncate font-medium">
-                    {cat.assignedAgentName ? cat.assignedAgentName.split(' ')[0] : 'Agent Gomarché'}
-                  </span>
-                </div>
+              {/* Bottom Card Footer: Clean exploration link (NO staff/agent names shown to customers) */}
+              <div className="p-2 sm:p-2.5 bg-white flex items-center justify-between text-[11px] font-bold text-gray-700 group-hover:text-[#E2001A] transition-colors">
+                <span className="truncate">Découvrir le rayon</span>
+                <ChevronRight className="w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
               </div>
             </div>
           );

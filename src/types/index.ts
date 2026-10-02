@@ -68,43 +68,25 @@ export interface CartItem {
 
 export type PaymentMethod = 'airtel_money' | 'orange_money' | 'mpesa' | 'afrimoney';
 
+export interface PaymentGatewayItemConfig {
+  merchantId: string;
+  apiKey: string;
+  secretKey?: string;
+  passKey?: string;
+  webhookUrl: string;
+  enabled: boolean;
+  sandboxMode: boolean;
+  phonePrefix: string;
+  customLogoUrl?: string;
+  displayName?: string;
+  instructions?: string;
+}
+
 export interface PaymentGatewayConfig {
-  airtel: {
-    merchantId: string;
-    apiKey: string;
-    secretKey: string;
-    webhookUrl: string;
-    enabled: boolean;
-    sandboxMode: boolean;
-    phonePrefix: string;
-  };
-  orange: {
-    merchantId: string;
-    apiKey: string;
-    secretKey: string;
-    webhookUrl: string;
-    enabled: boolean;
-    sandboxMode: boolean;
-    phonePrefix: string;
-  };
-  mpesa: {
-    merchantId: string;
-    apiKey: string;
-    passKey: string;
-    webhookUrl: string;
-    enabled: boolean;
-    sandboxMode: boolean;
-    phonePrefix: string;
-  };
-  afrimoney: {
-    merchantId: string;
-    apiKey: string;
-    secretKey: string;
-    webhookUrl: string;
-    enabled: boolean;
-    sandboxMode: boolean;
-    phonePrefix: string;
-  };
+  airtel: PaymentGatewayItemConfig;
+  orange: PaymentGatewayItemConfig;
+  mpesa: PaymentGatewayItemConfig;
+  afrimoney: PaymentGatewayItemConfig;
 }
 
 export type OrderStatus = 'paid' | 'preparing' | 'in_delivery' | 'delivered' | 'cancelled';

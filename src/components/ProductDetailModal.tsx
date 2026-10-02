@@ -29,33 +29,33 @@ export const ProductDetailModal: React.FC = () => {
     : selectedProduct.priceUsd;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden border border-gray-100 relative">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden border border-gray-100 relative max-h-[92vh] flex flex-col">
         <button
           type="button"
           onClick={handleClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 overflow-y-auto">
           {/* Image side */}
-          <div className="p-6 bg-gray-50 flex items-center justify-center relative">
+          <div className="p-4 sm:p-6 bg-gray-50 flex items-center justify-center relative">
             <img
               src={selectedProduct.image}
               alt={selectedProduct.name}
-              className="max-h-72 object-contain"
+              className="max-h-48 sm:max-h-72 object-contain"
             />
             {selectedProduct.discountPercent && (
-              <span className="absolute top-4 left-4 bg-[#E2001A] text-white text-xs font-black px-2.5 py-1 rounded-lg">
+              <span className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-[#E2001A] text-white text-xs font-black px-2.5 py-1 rounded-lg">
                 -{selectedProduct.discountPercent}%
               </span>
             )}
           </div>
 
           {/* Details side */}
-          <div className="p-6 sm:p-8 flex flex-col justify-between space-y-4">
+          <div className="p-4 sm:p-8 flex flex-col justify-between space-y-4">
             <div>
               <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
                 <span className="font-bold uppercase tracking-wider text-red-600">
@@ -141,7 +141,7 @@ export const ProductDetailModal: React.FC = () => {
               <div className="flex items-center justify-between text-[10px] text-gray-500 pt-2">
                 <span className="flex items-center gap-1">
                   <Truck className="w-3 h-3 text-emerald-600" />
-                  Livraison en 2h à Kinshasa & Goma
+                  Livraison express en 2h à Goma
                 </span>
                 <span className="flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3 text-blue-600" />

@@ -192,68 +192,68 @@ export const Header: React.FC = () => {
       </div>
 
       {/* 2. Main Header: Big Logo, Rounded Search, Cart & Account */}
-      <div className="max-w-7xl mx-auto px-4 py-3 sm:py-5 flex items-center justify-between gap-3 md:gap-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4 flex items-center justify-between gap-2 sm:gap-4 md:gap-8">
         {/* Mobile menu trigger */}
         <button
           type="button"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 text-gray-700 hover:text-[#E2001A] lg:hidden rounded-2xl hover:bg-gray-100"
+          className="p-1.5 sm:p-2 text-gray-700 hover:text-[#E2001A] lg:hidden rounded-2xl hover:bg-gray-100 shrink-0 cursor-pointer"
           aria-label="Menu"
         >
-          {isMobileMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
+          {isMobileMenuOpen ? <X className="w-6 h-6 sm:w-7 sm:h-7" /> : <Menu className="w-6 h-6 sm:w-7 sm:h-7" />}
         </button>
 
-        {/* Brand Logo - Enlarged, sharper, highly prominent as requested */}
+        {/* Brand Logo - Responsive sizing so it never causes mobile overflow */}
         <div
           onClick={() => {
             setActiveView('home');
             setSelectedCategoryFilter(null);
             setSearchQuery('');
           }}
-          className="flex items-center gap-3.5 cursor-pointer select-none group shrink-0"
+          className="flex items-center gap-2 sm:gap-3.5 cursor-pointer select-none group shrink-0"
         >
           {siteConfig.customLogoUrl ? (
             <img
               src={siteConfig.customLogoUrl}
               alt={siteConfig.siteName}
-              className="h-14 sm:h-18 md:h-22 object-contain"
+              className="h-10 sm:h-14 md:h-20 object-contain"
             />
           ) : (
-            <div className="flex items-center gap-3.5">
-              {/* Distinctive Large Hypermarket Emblem */}
+            <div className="flex items-center gap-2 sm:gap-3.5">
+              {/* Distinctive Hypermarket Emblem */}
               <div
-                className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl flex items-center justify-center text-white shadow-xl transition-transform group-hover:scale-105 border-2 sm:border-3 border-white/50"
+                className="w-9 h-9 sm:w-14 sm:h-14 md:w-18 md:h-18 rounded-xl sm:rounded-2xl md:rounded-3xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105 border-2 border-white/60 shrink-0"
                 style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
               >
                 <div className="relative flex items-center justify-center">
-                  <span className="font-black text-3xl sm:text-4xl md:text-5xl tracking-tighter leading-none">
+                  <span className="font-black text-xl sm:text-3xl md:text-5xl tracking-tighter leading-none">
                     G
                   </span>
                   <div
-                    className="absolute -bottom-1 -right-1.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-white shadow-xs"
+                    className="absolute -bottom-0.5 -right-1 w-2.5 h-2.5 sm:w-4 sm:h-4 rounded-full border border-white shadow-xs"
                     style={{ backgroundColor: siteConfig.secondaryColor || '#009640' }}
                   />
                 </div>
               </div>
               <div className="flex flex-col">
-                <div className="flex items-baseline">
+                <div translate="no" className="notranslate flex items-baseline">
                   <span
-                    className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight"
+                    className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-black tracking-tight"
                     style={{ color: siteConfig.primaryColor || '#E2001A' }}
                   >
                     Go
                   </span>
-                  <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight">
+                  <span className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight">
                     marché
                   </span>
                   <span
-                    className="text-xs sm:text-sm md:text-base font-black uppercase tracking-wider text-emerald-600 ml-2 px-2 py-0.5 bg-emerald-50 rounded-lg border border-emerald-200"
+                    className="text-[9px] sm:text-xs md:text-sm font-black uppercase tracking-wider text-emerald-600 ml-1 sm:ml-2 px-1.5 py-0.2 bg-emerald-50 rounded-md sm:rounded-lg border border-emerald-200"
                   >
                     Goma
                   </span>
                 </div>
-                <span className="text-[10px] sm:text-[11px] uppercase tracking-wider font-black text-gray-500 hidden sm:block">
-                  Hypermarché en Ligne • Service Exclusif Goma
+                <span className="text-[9px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 hidden sm:block">
+                  Supermarché en Ligne • Service Exclusif Goma
                 </span>
               </div>
             </div>
@@ -620,10 +620,10 @@ export const Header: React.FC = () => {
           {/* Payment Badges Goma */}
           <div className="hidden lg:flex items-center gap-1.5 text-gray-400 text-[11px] shrink-0">
             <span className="text-gray-500 font-medium mr-1">Paiements Goma :</span>
-            <AirtelMoneyLogo size="sm" showText={false} />
-            <OrangeMoneyLogo size="sm" showText={false} />
-            <MpesaLogo size="sm" showText={false} />
-            <AfriMoneyLogo size="sm" showText={false} />
+            <AirtelMoneyLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.airtel?.customLogoUrl} />
+            <OrangeMoneyLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.orange?.customLogoUrl} />
+            <MpesaLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.mpesa?.customLogoUrl} />
+            <AfriMoneyLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.afrimoney?.customLogoUrl} />
           </div>
         </div>
       </div>
@@ -719,10 +719,10 @@ export const Header: React.FC = () => {
             <div className="pt-4 border-t border-gray-100">
               <p className="text-[11px] text-gray-500 mb-2 font-semibold">Paiement Mobile Money instantané :</p>
               <div className="flex flex-wrap gap-1.5">
-                <AirtelMoneyLogo size="sm" showText={false} />
-                <OrangeMoneyLogo size="sm" showText={false} />
-                <MpesaLogo size="sm" showText={false} />
-                <AfriMoneyLogo size="sm" showText={false} />
+                <AirtelMoneyLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.airtel?.customLogoUrl} />
+                <OrangeMoneyLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.orange?.customLogoUrl} />
+                <MpesaLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.mpesa?.customLogoUrl} />
+                <AfriMoneyLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.afrimoney?.customLogoUrl} />
               </div>
             </div>
           </div>
