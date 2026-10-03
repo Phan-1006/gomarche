@@ -216,7 +216,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     syncCatalog();
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') syncCatalog();
-    }, 20_000);
+    }, 60_000);
     const onVisible = () => {
       if (document.visibilityState === 'visible') syncCatalog();
     };
@@ -237,7 +237,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     refreshOrders();
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') refreshOrders();
-    }, 5000);
+    }, 8000);
     return () => clearInterval(interval);
   }, [userId, refreshOrders]);
 

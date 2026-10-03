@@ -1,0 +1,40 @@
+# Déploiement Render (offre gratuite) : le serveur tourne ici, les données vivent dans Firestore.
+# Sur render.com : New → Blueprint → choisir ce dépôt et la branche.
+services:
+  - type: web
+    name: gomarche
+    runtime: node
+    plan: free # s'endort après 15 min sans visite ; passer à "starter" supprime l'attente au réveil
+    region: frankfurt
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/delivery-options
+    numInstances: 1 # une seule instance : l'état de travail est en mémoire
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Relais devant le serveur : 3 chez Render, plus 1 pour Vercel qui relaie les requêtes.
+      # Vérifiable sur /api/ping, qui doit afficher votre propre adresse IP.
+      - key: TRUST_PROXY
+        value: "3"
+      - key: RELAY_HOPS
+        value: "1"
+      # Adresse publique du site (pages servies par Vercel, qui relaie /api vers ce serveur).
+      - key: ALLOWED_HOSTS
+        value: gomarche.vercel.app
+      - key: ADMIN_EMAILS
+        value: mughenyakavale@gmail.com
+      # Valeurs secrètes : Render les demande à la création, elles ne sont jamais dans Git.
+      # Contenu complet du fichier JSON de clé de compte de service Firebase.
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      - key: PAYMENT_WEBHOOK_SECRET
+        sync: false

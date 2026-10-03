@@ -12,6 +12,7 @@ import type {
   StaffMember,
 } from '../src/types';
 import { INITIAL_CATEGORIES, INITIAL_PRODUCTS, INITIAL_SITE_CONFIG } from '../src/data/mockData';
+import { fileStore, firestoreStore, Snapshot, Store } from './store';
 
 export interface DbUser {
   id: string;
@@ -53,7 +54,6 @@ interface DbShape {
 export const ROOT_DIR = path.resolve(import.meta.dirname, '..');
 export const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(ROOT_DIR, 'data');
 export const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
-const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
@@ -119,9 +119,11 @@ export function normalizeConfig(raw: any): SiteConfig {
 
 function initialDb(): DbShape {
   // Première mise en route : on reprend les anciens fichiers s'ils existent.
-  const legacyConfig = readJson(path.join(DATA_DIR, 'site-config.json'));
-  const legacyProducts = readJson(path.join(DATA_DIR, 'products.json'));
-  const legacyCategories = readJson(path.join(DATA_DIR, 'categories.json'));
+  // Ils vivent dans le dossier data/ du dépôt, même quand DATA_DIR pointe vers un disque monté.
+  const legacy = (file: string) => readJson(path.join(DATA_DIR, file)) ?? readJson(path.join(ROOT_DIR, 'data', file));
+  const legacyConfig = legacy('site-config.json');
+  const legacyProducts = legacy('products.json');
+  const legacyCategories = legacy('categories.json');
   const stripAgent = ({ assignedAgentId, assignedAgentName, assignedAgentEmail, ...c }: any): Category => c;
   return {
     config: { ...normalizeConfig(legacyConfig), updatedAt: Date.now() },
@@ -137,53 +139,124 @@ function initialDb(): DbShape {
   };
 }
 
-function load(): DbShape {
-  const existing = readJson(DB_FILE);
-  if (existing && existing.config) {
-    const fresh = initialDb();
-    return { ...fresh, ...existing, config: { ...normalizeConfig(existing.config), updatedAt: existing.config.updatedAt || Date.now() } };
+// Les listes qui changent peu sont rangées par morceaux (un document ne dépasse pas 1 Mo dans
+// Firestore) ; commandes et conversations ont chacune leur document.
+const CHUNKED = ['categories', 'products', 'users', 'staff', 'sessions', 'audit'] as const;
+const CHUNK_BYTES = 600_000;
+
+function chunk(name: string, items: unknown[], out: Record<string, unknown>) {
+  let current: unknown[] = [];
+  let size = 0;
+  let index = 0;
+  const push = () => {
+    out[`${name}-${index++}`] = { items: current };
+    current = [];
+    size = 0;
+  };
+  for (const item of items) {
+    const bytes = Buffer.byteLength(JSON.stringify(item));
+    if (size + bytes > CHUNK_BYTES && current.length) push();
+    current.push(item);
+    size += bytes;
   }
-  if (fs.existsSync(DB_FILE)) {
-    // Fichier présent mais illisible : on le met de côté plutôt que de l'écraser.
-    fs.renameSync(DB_FILE, `${DB_FILE}.corrupt-${Date.now()}`);
-  }
-  return initialDb();
+  if (current.length || index === 0) push();
 }
 
-export const db: DbShape = load();
+function toSnapshot(): Snapshot {
+  const snapshot: Snapshot = { state: { config: { value: db.config }, meta: { orderSeq: db.orderSeq } }, orders: {}, chats: {} };
+  for (const name of CHUNKED) chunk(name, db[name], snapshot.state);
+  for (const order of db.orders) snapshot.orders[order.id] = order;
+  const byOrder = new Map<string, ChatMessage[]>();
+  for (const m of db.messages) {
+    if (!byOrder.has(m.orderId)) byOrder.set(m.orderId, []);
+    byOrder.get(m.orderId)!.push(m);
+  }
+  for (const [orderId, messages] of byOrder) {
+    snapshot.chats[orderId] = { orderId, updatedAt: messages[messages.length - 1].at, messages: messages.slice(-300) };
+  }
+  return snapshot;
+}
+
+function fromSnapshot(snapshot: Snapshot): DbShape {
+  const fresh = initialDb();
+  const legacy = (snapshot.state as any).__legacy;
+  if (legacy && legacy.config) {
+    // Fichier db.json d'avant le découpage en documents.
+    return { ...fresh, ...legacy, config: { ...normalizeConfig(legacy.config), updatedAt: legacy.config.updatedAt || Date.now() } };
+  }
+  const state = snapshot.state as Record<string, any>;
+  const list = (name: string) =>
+    Object.keys(state)
+      .filter((k) => k.startsWith(`${name}-`))
+      .sort((x, y) => Number(x.slice(name.length + 1)) - Number(y.slice(name.length + 1)))
+      .flatMap((k) => state[k].items || []);
+  const savedConfig = state.config?.value;
+  return {
+    config: savedConfig ? { ...normalizeConfig(savedConfig), updatedAt: savedConfig.updatedAt || Date.now() } : fresh.config,
+    categories: list('categories'),
+    products: list('products'),
+    users: list('users'),
+    staff: list('staff'),
+    sessions: list('sessions'),
+    audit: list('audit'),
+    orders: (Object.values(snapshot.orders) as Order[]).sort((x, y) => y.createdAt - x.createdAt),
+    messages: (Object.values(snapshot.chats) as { messages: ChatMessage[] }[]).flatMap((c) => c.messages || []).sort((x, y) => x.at - y.at),
+    orderSeq: Number(state.meta?.orderSeq) || fresh.orderSeq,
+  };
+}
+
+// Rempli par initDb() avant que le serveur n'accepte la moindre requête.
+export const db: DbShape = {} as DbShape;
+export let store: Store;
+
+export async function initDb() {
+  const useFirestore = !!(process.env.FIREBASE_SERVICE_ACCOUNT || process.env.FIRESTORE_EMULATOR_HOST);
+  store = useFirestore ? await firestoreStore() : fileStore(DATA_DIR, UPLOADS_DIR);
+  const snapshot = await store.load();
+  Object.assign(db, snapshot ? fromSnapshot(snapshot) : initialDb());
+  // Première mise en route (ou reprise d'un ancien format) : on écrit tout de suite l'état complet.
+  if (!snapshot || (snapshot.state as any).__legacy) await store.persist(toSnapshot());
+  console.log(`Données : ${store.kind === 'firestore' ? 'Firestore' : `fichier ${DATA_DIR}/db.json`} — ${db.products.length} produits, ${db.orders.length} commandes chargées.`);
+}
 
 let saveTimer: NodeJS.Timeout | null = null;
+let writing: Promise<void> = Promise.resolve();
+let dirty = false;
 
-export function flush() {
+// Les écritures se suivent une à une ; un échec (réseau) est retenté à la sauvegarde suivante.
+export function flush(): Promise<void> {
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
-  const tmp = `${DB_FILE}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(db), { encoding: 'utf-8', mode: 0o600 });
-  fs.renameSync(tmp, DB_FILE);
+  dirty = false;
+  writing = writing
+    .then(() => store.persist(toSnapshot()))
+    .catch((e) => {
+      console.error('Échec de sauvegarde de la base :', e);
+      dirty = true;
+    });
+  return writing;
 }
 
-// Écriture atomique regroupée : plusieurs modifications rapprochées = une seule écriture disque.
+// Écriture regroupée : plusieurs modifications rapprochées = une seule sauvegarde.
 export function save() {
   if (saveTimer) return;
   saveTimer = setTimeout(() => {
     saveTimer = null;
-    try {
-      flush();
-    } catch (e) {
-      console.error('Échec de sauvegarde de la base :', e);
-    }
-  }, 150);
+    void flush();
+  }, 250);
 }
+
+// Filet de sécurité : une sauvegarde échouée est rejouée même sans nouvelle modification.
+setInterval(() => {
+  if (dirty) save();
+}, 15_000).unref();
 
 for (const sig of ['SIGINT', 'SIGTERM'] as const) {
   process.on(sig, () => {
-    try {
-      flush();
-    } finally {
-      process.exit(0);
-    }
+    // L'hébergeur prévient avant d'arrêter ou d'endormir le serveur : on écrit ce qui reste.
+    flush().finally(() => process.exit(0));
   });
 }
 
@@ -191,7 +264,7 @@ export const newId = (prefix: string) => `${prefix}-${crypto.randomBytes(9).toSt
 
 export function audit(actorEmail: string, action: string, detail: string) {
   db.audit.unshift({ id: newId('aud'), at: Date.now(), actorEmail, action, detail });
-  if (db.audit.length > 2000) db.audit.length = 2000;
+  if (db.audit.length > 800) db.audit.length = 800;
   save();
 }
 

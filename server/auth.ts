@@ -13,6 +13,7 @@ import {
   normalizePhone,
   recordFailure,
   requireAuth,
+  signupCeiling,
   startSession,
   str,
   validPassword,
@@ -48,7 +49,7 @@ export function bootstrapAdmin() {
 
 export const authRouter = Router();
 
-authRouter.post('/auth/register', authLimiter, botCheck, (req, res) => {
+authRouter.post('/auth/register', signupCeiling, authLimiter, botCheck, (req, res) => {
   const email = str(req.body?.email, 254).toLowerCase();
   const name = str(req.body?.name, 80);
   const password = req.body?.password;

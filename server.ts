@@ -4,8 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import express from 'express';
 import helmet from 'helmet';
-import { db, ROOT_DIR, UPLOADS_DIR } from './server/db';
-import { apiLimiter, csrfGuard, IS_PROD, loadSession, safeEqual } from './server/security';
+import { db, initDb, ROOT_DIR, store, UPLOADS_DIR } from './server/db';
+import { apiLimiter, clientKey, csrfGuard, IS_PROD, loadSession, safeEqual } from './server/security';
 import { authRouter, bootstrapAdmin } from './server/auth';
 import { catalogRouter } from './server/catalog';
 import { applyWebhookPayment, ordersRouter, sweepUnpaidOrders } from './server/orders';
@@ -47,18 +47,24 @@ app.use(
 );
 
 // Fichiers envoyés : servis comme simples images, jamais interprétés comme page.
-app.use(
-  '/uploads',
-  express.static(UPLOADS_DIR, {
-    index: false,
-    maxAge: '30d',
-    immutable: true,
-    setHeaders: (res) => {
-      res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-    },
-  })
-);
+const uploadHeaders = (res: express.Response) => {
+  res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+};
+app.get('/uploads/:name', async (req, res, next) => {
+  if (store.kind === 'file') return next();
+  if (!/^[a-f0-9]{24}\.(jpg|png|webp)$/.test(req.params.name)) return res.status(404).end();
+  try {
+    const file = await store.readUpload(req.params.name);
+    if (!file) return res.status(404).end();
+    uploadHeaders(res);
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    res.type(file.contentType).send(file.data);
+  } catch (e) {
+    next(e);
+  }
+});
+app.use('/uploads', express.static(UPLOADS_DIR, { index: false, maxAge: '30d', immutable: true, setHeaders: uploadHeaders }));
 
 // Manifeste PWA généré depuis la configuration : le nom et l'icône choisis par l'admin
 // s'appliquent à tous les appareils, sans redéploiement.
@@ -128,6 +134,11 @@ api.use((_req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
+// Diagnostic de mise en ligne : montre à l'appelant sa propre adresse telle que le serveur la voit,
+// pour vérifier le réglage TRUST_PROXY (la limitation de débit en dépend).
+api.get('/ping', (req, res) => {
+  res.json({ ok: true, ip: clientKey(req), hops: String(req.headers['x-forwarded-for'] || '').split(',').filter(Boolean).length });
+});
 api.use(authRouter);
 api.use(catalogRouter);
 api.use(ordersRouter);
@@ -145,6 +156,7 @@ app.use((err: any, _req: express.Request, res: express.Response, next: express.N
 });
 
 async function startServer() {
+  await initDb();
   bootstrapAdmin();
   sweepUnpaidOrders();
   setInterval(sweepUnpaidOrders, 60_000).unref();
@@ -181,6 +193,9 @@ async function startServer() {
 }
 
 startServer().catch((err) => {
-  console.error('Échec du démarrage :', err);
+  // Message seul : l'objet d'erreur complet peut embarquer des détails de configuration.
+  console.error('ÉCHEC DU DÉMARRAGE :', err?.message || err);
+  if (err?.code === 5) console.error('→ La base Firestore est introuvable : créez-la dans la console Firebase (Firestore Database).');
+  if (err?.code === 7) console.error('→ Accès refusé : la clé de compte de service n’appartient pas à ce projet Firebase.');
   process.exit(1);
 });
