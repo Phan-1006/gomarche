@@ -1,0 +1,36 @@
+# Déploiement Render : un serveur Node permanent + un disque persistant pour les données.
+# Sur render.com : New → Blueprint → choisir ce dépôt et la branche.
+services:
+  - type: web
+    name: gomarche
+    runtime: node
+    plan: starter # le disque persistant n'existe pas sur l'offre gratuite
+    region: frankfurt
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/delivery-options
+    numInstances: 1 # la base est un fichier : une seule instance
+    disk:
+      name: gomarche-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: TRUST_PROXY
+        value: "1"
+      - key: ADMIN_EMAILS
+        value: mughenyakavale@gmail.com
+      # Valeurs secrètes : Render les demande à la création, elles ne sont jamais dans Git.
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      - key: PAYMENT_WEBHOOK_SECRET
+        sync: false

@@ -119,9 +119,11 @@ export function normalizeConfig(raw: any): SiteConfig {
 
 function initialDb(): DbShape {
   // Première mise en route : on reprend les anciens fichiers s'ils existent.
-  const legacyConfig = readJson(path.join(DATA_DIR, 'site-config.json'));
-  const legacyProducts = readJson(path.join(DATA_DIR, 'products.json'));
-  const legacyCategories = readJson(path.join(DATA_DIR, 'categories.json'));
+  // Ils vivent dans le dossier data/ du dépôt, même quand DATA_DIR pointe vers un disque monté.
+  const legacy = (file: string) => readJson(path.join(DATA_DIR, file)) ?? readJson(path.join(ROOT_DIR, 'data', file));
+  const legacyConfig = legacy('site-config.json');
+  const legacyProducts = legacy('products.json');
+  const legacyCategories = legacy('categories.json');
   const stripAgent = ({ assignedAgentId, assignedAgentName, assignedAgentEmail, ...c }: any): Category => c;
   return {
     config: { ...normalizeConfig(legacyConfig), updatedAt: Date.now() },
