@@ -15,6 +15,9 @@ services:
         value: production
       - key: TRUST_PROXY
         value: "1"
+      # Adresse publique du site (pages servies par Vercel, qui relaie /api vers ce serveur).
+      - key: ALLOWED_HOSTS
+        value: gomarche.vercel.app
       - key: ADMIN_EMAILS
         value: mughenyakavale@gmail.com
       # Valeurs secrètes : Render les demande à la création, elles ne sont jamais dans Git.

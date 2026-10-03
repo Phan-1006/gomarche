@@ -134,6 +134,11 @@ api.use((_req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
+// Diagnostic de mise en ligne : montre à l'appelant sa propre adresse telle que le serveur la voit,
+// pour vérifier le réglage TRUST_PROXY (la limitation de débit en dépend).
+api.get('/ping', (req, res) => {
+  res.json({ ok: true, ip: req.ip, hops: String(req.headers['x-forwarded-for'] || '').split(',').filter(Boolean).length });
+});
 api.use(authRouter);
 api.use(catalogRouter);
 api.use(ordersRouter);

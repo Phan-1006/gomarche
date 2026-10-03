@@ -119,17 +119,26 @@ export const requireRole =
 // Toute requête qui modifie des données doit porter un en-tête personnalisé (impossible à
 // envoyer depuis un autre site sans autorisation CORS, que ce serveur n'accorde jamais) et,
 // quand le navigateur l'indique, provenir de la même origine.
+// Noms de domaine supplémentaires depuis lesquels le site est servi (ex. un hébergeur de pages
+// qui relaie les requêtes vers ce serveur).
+const ALLOWED_HOSTS = (process.env.ALLOWED_HOSTS || '')
+  .split(',')
+  .map((h) => h.trim().toLowerCase())
+  .filter(Boolean);
+
 export function csrfGuard(req: Request, res: Response, next: NextFunction) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
   const origin = req.headers.origin;
   if (origin) {
     let originHost = '';
     try {
-      originHost = new URL(origin).hostname;
+      originHost = new URL(origin).hostname.toLowerCase();
     } catch {
       /* origine illisible => refus ci-dessous */
     }
-    if (originHost !== req.hostname) return res.status(403).json({ error: 'Origine refusée.' });
+    if (originHost !== req.hostname && !ALLOWED_HOSTS.includes(originHost)) {
+      return res.status(403).json({ error: 'Origine refusée.' });
+    }
   }
   if (req.headers['x-requested-with'] !== 'gomarche') return res.status(403).json({ error: 'Requête refusée.' });
   next();
