@@ -2,7 +2,8 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import type { NextFunction, Request, Response } from 'express';
-import rateLimit from 'express-rate-limit';
+import { isIP } from 'net';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { Role } from '../src/types';
 import { db, DbUser, ROOT_DIR, roleOf, save } from './db';
@@ -146,10 +147,26 @@ export function csrfGuard(req: Request, res: Response, next: NextFunction) {
 
 // ---------------------------------------------------------------- limitation de débit
 
-const limiter = (windowMs: number, limit: number, message: string) =>
+// Adresse du visiteur pour la limitation de débit. Derrière un hébergeur, elle se lit dans
+// X-Forwarded-For en comptant depuis la droite : TRUST_PROXY relais appartiennent à l'hébergeur
+// du serveur, RELAY_HOPS de plus quand un autre hébergeur (pages) relaie les requêtes.
+const TRUSTED_HOPS = Number(process.env.TRUST_PROXY ?? 1);
+const RELAY_HOPS = Number(process.env.RELAY_HOPS ?? 0);
+
+export function clientKey(req: Request): string {
+  const chain = String(req.headers['x-forwarded-for'] || '')
+    .split(',')
+    .map((h) => h.trim())
+    .filter(Boolean);
+  const candidate = chain[chain.length - TRUSTED_HOPS - RELAY_HOPS];
+  return ipKeyGenerator(candidate && isIP(candidate) ? candidate : req.ip || 'inconnu');
+}
+
+const limiter = (windowMs: number, limit: number, message: string, keyGenerator: (req: Request) => string = clientKey) =>
   rateLimit({
     windowMs,
     limit,
+    keyGenerator,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     message: { error: message },
@@ -159,6 +176,9 @@ export const apiLimiter = limiter(60_000, 240, 'Trop de requêtes. Réessayez da
 export const authLimiter = limiter(15 * 60_000, 20, 'Trop de tentatives de connexion. Réessayez dans 15 minutes.');
 export const orderLimiter = limiter(60 * 60_000, 12, 'Trop de commandes en peu de temps. Réessayez plus tard.');
 export const writeLimiter = limiter(60_000, 40, 'Trop d’actions en peu de temps. Ralentissez.');
+// Plafond global, indépendant de l'adresse : borne les inscriptions en masse même si un robot
+// change d'adresse à chaque requête.
+export const signupCeiling = limiter(60 * 60_000, 300, 'Trop d’inscriptions en ce moment. Réessayez plus tard.', () => 'tous');
 export const lensLimiter = limiter(60 * 60_000, 60, 'Limite de recherches photo atteinte pour cette heure.');
 
 // Verrouillage par compte, en plus de la limite par adresse IP.

@@ -13,7 +13,11 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Relais devant le serveur : 3 chez Render, plus 1 pour Vercel qui relaie les requêtes.
+      # Vérifiable sur /api/ping, qui doit afficher votre propre adresse IP.
       - key: TRUST_PROXY
+        value: "3"
+      - key: RELAY_HOPS
         value: "1"
       # Adresse publique du site (pages servies par Vercel, qui relaie /api vers ce serveur).
       - key: ALLOWED_HOSTS

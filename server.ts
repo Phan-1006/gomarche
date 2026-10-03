@@ -5,7 +5,7 @@ import path from 'path';
 import express from 'express';
 import helmet from 'helmet';
 import { db, initDb, ROOT_DIR, store, UPLOADS_DIR } from './server/db';
-import { apiLimiter, csrfGuard, IS_PROD, loadSession, safeEqual } from './server/security';
+import { apiLimiter, clientKey, csrfGuard, IS_PROD, loadSession, safeEqual } from './server/security';
 import { authRouter, bootstrapAdmin } from './server/auth';
 import { catalogRouter } from './server/catalog';
 import { applyWebhookPayment, ordersRouter, sweepUnpaidOrders } from './server/orders';
@@ -137,7 +137,7 @@ api.use((_req, res, next) => {
 // Diagnostic de mise en ligne : montre à l'appelant sa propre adresse telle que le serveur la voit,
 // pour vérifier le réglage TRUST_PROXY (la limitation de débit en dépend).
 api.get('/ping', (req, res) => {
-  res.json({ ok: true, ip: req.ip, hops: String(req.headers['x-forwarded-for'] || '').split(',').filter(Boolean).length });
+  res.json({ ok: true, ip: clientKey(req), hops: String(req.headers['x-forwarded-for'] || '').split(',').filter(Boolean).length });
 });
 api.use(authRouter);
 api.use(catalogRouter);
