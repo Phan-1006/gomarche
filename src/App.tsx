@@ -26,6 +26,7 @@ import { isActiveOrder } from './utils/orders';
 import { OrderTrackingView } from './components/OrderTrackingView';
 import { PromotionsView } from './components/PromotionsView';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
+import { EmailVerifyBanner } from './components/EmailVerifyBanner';
 import { Footer } from './components/Footer';
 
 const MobileBottomNav: React.FC = () => {
@@ -148,6 +149,9 @@ const GomarcheContent: React.FC = () => {
     >
       {/* PWA Prompt bar */}
       <PwaInstallPrompt />
+
+      {/* Rappel de confirmation d'adresse e-mail */}
+      <EmailVerifyBanner />
 
       {/* Modern Supermarket Header */}
       <Header />

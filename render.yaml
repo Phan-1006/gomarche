@@ -22,6 +22,9 @@ services:
       # Adresse publique du site (pages servies par Vercel, qui relaie /api vers ce serveur).
       - key: ALLOWED_HOSTS
         value: gomarche.vercel.app
+      # Adresse mise dans les liens envoyés par e-mail (confirmation, mot de passe oublié).
+      - key: PUBLIC_URL
+        value: https://gomarche.vercel.app
       - key: ADMIN_EMAILS
         value: mughenyakavale@gmail.com
       # Valeurs secrètes : Render les demande à la création, elles ne sont jamais dans Git.
@@ -29,6 +32,11 @@ services:
       - key: FIREBASE_SERVICE_ACCOUNT
         sync: false
       - key: ADMIN_PASSWORD
+        sync: false
+      # Clé API Brevo et adresse d'expéditeur validée : sans elles, aucun e-mail de compte ne part.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM
         sync: false
       - key: GEMINI_API_KEY
         sync: false

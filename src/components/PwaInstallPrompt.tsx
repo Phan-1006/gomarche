@@ -1,25 +1,79 @@
-import React, { useState } from 'react';
-import { Download, X, Smartphone, Check } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Download, Share, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
-export const PwaInstallPrompt: React.FC = () => {
-  const { deferredPrompt, siteConfig } = useApp();
-  const [dismissed, setDismissed] = useState(false);
+// Refus mémorisé : on ne repropose l'installation qu'après ce délai.
+const DISMISS_KEY = 'gm_pwa_dismissed_at';
+const DISMISS_DAYS = 14;
 
-  if (dismissed) return null;
+// L'application tourne déjà installée (écran d'accueil, fenêtre dédiée).
+const isInstalled = () =>
+  ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'].some(
+    (mode) => window.matchMedia?.(`(display-mode: ${mode})`).matches
+  ) ||
+  (navigator as any).standalone === true ||
+  document.referrer.startsWith('android-app://');
+
+// Safari sur iPhone/iPad sait installer, mais sans invite : il faut passer par « Partager ».
+// Les navigateurs intégrés (Facebook, Instagram, WhatsApp…) et les autres navigateurs iOS ne le peuvent pas.
+const isIosSafari = () => {
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|FBAN|FBAV|Instagram|Line|WhatsApp/.test(ua);
+};
+
+const recentlyDismissed = () => {
+  try {
+    const at = Number(localStorage.getItem(DISMISS_KEY) || 0);
+    return at > 0 && Date.now() - at < DISMISS_DAYS * 24 * 60 * 60 * 1000;
+  } catch {
+    return false;
+  }
+};
+
+export const PwaInstallPrompt: React.FC = () => {
+  const { deferredPrompt, setDeferredPrompt, siteConfig } = useApp();
+  const [installed, setInstalled] = useState(isInstalled);
+  const [dismissed, setDismissed] = useState(recentlyDismissed);
+  const [showIosSteps, setShowIosSteps] = useState(false);
+  const iosSafari = useMemo(isIosSafari, []);
+
+  useEffect(() => {
+    const onInstalled = () => setInstalled(true);
+    const standalone = window.matchMedia?.('(display-mode: standalone)');
+    const onModeChange = (e: MediaQueryListEvent) => e.matches && setInstalled(true);
+    window.addEventListener('appinstalled', onInstalled);
+    standalone?.addEventListener?.('change', onModeChange);
+    return () => {
+      window.removeEventListener('appinstalled', onInstalled);
+      standalone?.removeEventListener?.('change', onModeChange);
+    };
+  }, []);
+
+  // Proposée uniquement là où l'installation est réellement possible :
+  // invite fournie par le navigateur, ou Safari sur iOS.
+  if (installed || dismissed || (!deferredPrompt && !iosSafari)) return null;
+
+  const dismiss = () => {
+    try {
+      localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    } catch {
+      /* navigation privée : le refus ne vaut que pour cette visite */
+    }
+    setDismissed(true);
+  };
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setDismissed(true);
-      }
-    } else {
-      alert(
-        "Application Gomarché PWA :\n\n• Sur Android / Chrome : Cliquez sur le menu (3 points en haut à droite) puis 'Installer l'application'.\n• Sur iPhone / Safari : Cliquez sur le bouton de Partage puis 'Sur l'écran d'accueil'."
-      );
+    if (!deferredPrompt) {
+      setShowIosSteps((open) => !open);
+      return;
     }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    // Une invite ne sert qu'une fois, quelle que soit la réponse.
+    setDeferredPrompt(null);
+    if (outcome === 'accepted') setInstalled(true);
+    else dismiss();
   };
 
   return (
@@ -39,10 +93,10 @@ export const PwaInstallPrompt: React.FC = () => {
           )}
           <div>
             <p className="font-bold text-white leading-tight">
-              Installez l'application <span translate="no" className="notranslate">Gomarché</span> sur votre téléphone (PWA)
+              Installez l'application <span translate="no" className="notranslate">{siteConfig.siteName}</span>
             </p>
             <p className="text-[11px] text-gray-300 hidden sm:block">
-              Accès ultra-rapide sans téléchargement lourd, notifications des promos et suivi livreur.
+              Accès rapide depuis votre écran d'accueil, sans passer par le navigateur.
             </p>
           </div>
         </div>
@@ -55,18 +109,26 @@ export const PwaInstallPrompt: React.FC = () => {
             style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Installer l'App</span>
+            <span>Installer</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setDismissed(true)}
+            onClick={dismiss}
+            aria-label="Plus tard"
             className="p-1 text-gray-400 hover:text-white rounded-lg"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       </div>
+
+      {showIosSteps && (
+        <p className="max-w-7xl mx-auto mt-2 text-[11px] text-gray-200 flex items-center gap-1.5 flex-wrap">
+          Touchez <Share className="w-3.5 h-3.5 inline" aria-label="Partager" /> en bas de Safari, puis
+          <strong>« Sur l'écran d'accueil »</strong>.
+        </p>
+      )}
     </div>
   );
 };

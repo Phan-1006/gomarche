@@ -26,6 +26,7 @@ export interface User {
   email: string;
   name: string;
   role: Role;
+  emailVerified?: boolean;
   avatar?: string;
   phone?: string;
   address?: string;

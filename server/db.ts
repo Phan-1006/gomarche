@@ -24,12 +24,18 @@ export interface DbUser {
   commune?: string;
   loyaltyPoints: number;
   passwordHash?: string;
-  // true si l'e-mail est prouvé (connexion Google) ou si le mot de passe a été posé par l'admin.
+  // true si l'e-mail est prouvé (connexion Google, lien reçu par e-mail) ou si le mot de passe
+  // a été posé par l'admin.
   // Un rôle employé/admin n'est jamais accordé à un e-mail non vérifié.
   emailVerified: boolean;
   createdAt: number;
   lastLoginAt?: number;
   disabled?: boolean;
+  // Liens à usage unique envoyés par e-mail : seule l'empreinte du jeton est conservée.
+  verifyTokenHash?: string;
+  verifyTokenExpiresAt?: number;
+  resetTokenHash?: string;
+  resetTokenExpiresAt?: number;
 }
 
 export interface DbSession {
@@ -293,6 +299,7 @@ export function publicUser(user: DbUser) {
     email: user.email,
     name: user.name,
     role: roleOf(user),
+    emailVerified: user.emailVerified,
     avatar: user.avatar,
     phone: user.phone || staff?.phone,
     address: user.address,

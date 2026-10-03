@@ -76,6 +76,12 @@ interface AppContextType {
   login: (email: string, password: string, extra?: object) => Promise<AuthResult>;
   register: (name: string, email: string, password: string, extra?: object) => Promise<AuthResult>;
   loginWithGoogle: () => Promise<AuthResult>;
+  // Mot de passe oublié et confirmation d'adresse (liens reçus par e-mail).
+  requestPasswordReset: (email: string, extra?: object) => Promise<AuthResult>;
+  resetPassword: (token: string, password: string) => Promise<AuthResult>;
+  resendVerification: () => Promise<AuthResult>;
+  resetToken: string | null;
+  setResetToken: (token: string | null) => void;
   logout: () => Promise<void>;
   updateProfile: (fields: Partial<Pick<User, 'name' | 'phone' | 'address' | 'commune'>>) => Promise<AuthResult>;
   homeViewFor: (user: User | null) => AppView;
@@ -118,6 +124,9 @@ const setStored = (key: string, value: unknown) => {
     /* stockage plein ou navigation privée : sans conséquence */
   }
 };
+
+// Un lien reçu par e-mail ne doit être traité qu'une fois, même si React monte l'application deux fois.
+let mailLinkHandled = false;
 
 // Anciennes clés où le navigateur conservait comptes, mots de passe et commandes.
 const LEGACY_KEYS = [
@@ -170,6 +179,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const notify = useCallback((message: string, kind: 'success' | 'error' = 'success') => {
@@ -273,8 +283,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       e.preventDefault();
       setDeferredPrompt(e);
     };
+    // Une fois l'application installée, l'invite du navigateur n'est plus valable.
+    const installed = () => setDeferredPrompt(null);
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', installed);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installed);
+    };
   }, []);
 
   // ---------------------------------------------------------------- prix
@@ -382,6 +398,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: err instanceof ApiError ? err.message : 'Échec de la connexion avec Google.' };
     }
   };
+
+  const requestPasswordReset = async (email: string, extra: object = {}): Promise<AuthResult> => {
+    try {
+      await api('POST', '/auth/forgot-password', { email, ...extra });
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: errorMessage(e) };
+    }
+  };
+
+  const resetPassword = async (token: string, password: string): Promise<AuthResult> => {
+    try {
+      const result = openSession((await api<{ user: User }>('POST', '/auth/reset-password', { token, password })).user);
+      setResetToken(null);
+      return result;
+    } catch (e) {
+      return { success: false, message: errorMessage(e) };
+    }
+  };
+
+  const resendVerification = async (): Promise<AuthResult> => {
+    try {
+      await api('POST', '/auth/resend-verification');
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: errorMessage(e) };
+    }
+  };
+
+  // Liens reçus par e-mail : /?verify=… confirme l'adresse, /?reset=… ouvre le choix d'un
+  // nouveau mot de passe. Le jeton est aussitôt retiré de la barre d'adresse.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verify = params.get('verify');
+    const reset = params.get('reset');
+    if (!verify && !reset) return;
+    if (mailLinkHandled) return;
+    mailLinkHandled = true;
+    params.delete('verify');
+    params.delete('reset');
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    if (reset) {
+      setResetToken(reset);
+      setIsAuthOpen(true);
+    } else if (verify) {
+      api<{ user: User | null }>('POST', '/auth/verify-email', { token: verify })
+        .then((data) => {
+          if (data.user) setCurrentUser(data.user);
+          notify('Adresse e-mail confirmée. Merci !');
+        })
+        .catch((e) => notify(errorMessage(e), 'error'));
+    }
+  }, []);
 
   const logout = async () => {
     await api('POST', '/auth/logout').catch(() => {});
@@ -573,6 +643,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         login,
         register,
         loginWithGoogle,
+        requestPasswordReset,
+        resetPassword,
+        resendVerification,
+        resetToken,
+        setResetToken,
         logout,
         updateProfile,
         homeViewFor,
