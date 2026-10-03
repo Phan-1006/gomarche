@@ -19,8 +19,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Product } from '../types';
-import { ProductPhotoPicker } from './ProductPhotoPicker';
-import { StaffShell } from './StaffShell';
+import { uploadImageFile } from '../services/imageUpload';
 
 export const AgentPanel: React.FC = () => {
   const {
@@ -33,18 +32,51 @@ export const AgentPanel: React.FC = () => {
     deleteProduct,
     formatPrice,
     convertUsdToCdf,
+    setActiveView,
+    setIsAuthOpen,
   } = useApp();
 
-  // Find category assigned to this agent
-  // Rayons confiés par l'admin (aucun rayon précisé = tous). Le serveur applique la même règle.
-  const assignedIds = currentUser?.role === 'category_agent' ? currentUser.assignedCategoryIds || [] : [];
-  const myCategories = assignedIds.length ? categories.filter((c) => assignedIds.includes(c.id)) : categories;
-  const [selectedCatId, setSelectedCatId] = useState('');
+  // Access check
+  if (currentUser?.role !== 'category_agent' && currentUser?.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl p-8 border border-emerald-200 shadow-2xl max-w-md w-full text-center space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black text-gray-900">Espace Agent de Rayon Réservé</h2>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            Cette interface de gestion de rayon est strictement réservée aux agents habilités du supermarché Gomarché Goma.
+          </p>
+          <div className="pt-2 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setIsAuthOpen(true)}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-colors"
+            >
+              Se connecter avec mes identifiants Agent
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveView('home')}
+              className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-colors"
+            >
+              Retour à la boutique
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const activeCategory = myCategories.find((c) => c.id === selectedCatId) || myCategories[0];
+  // Find category assigned to this agent
+  const assignedCat = categories.find((c) => c.id === currentUser?.assignedCategoryId) || categories[0];
+  const [selectedCatId, setSelectedCatId] = useState(assignedCat.id);
+
+  const activeCategory = categories.find((c) => c.id === selectedCatId) || assignedCat;
 
   // Filter products for this rayon
-  const rayonProducts = products.filter((p) => p.categoryId === activeCategory?.id);
+  const rayonProducts = products.filter((p) => p.categoryId === activeCategory.id);
 
   // New product form
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,40 +89,64 @@ export const AgentPanel: React.FC = () => {
   const [stock, setStock] = useState(40);
   const [image, setImage] = useState('');
   const [description, setDescription] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const fields = {
-      name,
-      brand,
-      priceUsd: Number(priceUsd),
-      discountPercent: Number(discountPercent),
-      unit,
-      stockCount: Number(stock),
-      inStock: Number(stock) > 0,
-      description,
-      isPromo: Number(discountPercent) > 0 || !!activeCategory.isPromoCategory,
-    };
-    const ok = editingProduct
-      ? await updateProduct({ ...editingProduct, ...fields, image: image || editingProduct.image })
-      : await addProduct({ ...fields, categoryId: activeCategory.id, rating: 0, reviewCount: 0, image });
-    // En cas de refus du serveur, le formulaire reste ouvert avec la saisie intacte.
-    if (ok) {
-      setIsModalOpen(false);
-      setEditingProduct(null);
-    }
+  const [toast, setToast] = useState('');
+
+  const triggerToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2500);
   };
 
-  if (!currentUser || (currentUser.role !== 'category_agent' && currentUser.role !== 'admin') || !activeCategory) {
-    return (
-      <StaffShell roles={['category_agent', 'admin']} title="Gestion des rayons" subtitle="Aucun rayon ne vous est attribué pour le moment">
-        <p className="text-sm text-gray-600">Demandez à l’administrateur de vous attribuer un rayon.</p>
-      </StaffShell>
-    );
-  }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingProduct) {
+      updateProduct({
+        ...editingProduct,
+        name,
+        brand,
+        priceUsd: Number(priceUsd),
+        discountPercent: Number(discountPercent),
+        unit,
+        stockCount: Number(stock),
+        inStock: Number(stock) > 0,
+        image: image || editingProduct.image,
+        description,
+        isPromo: Number(discountPercent) > 0 || activeCategory.isPromoCategory,
+      });
+      triggerToast('Produit mis à jour avec succès !');
+    } else {
+      addProduct({
+        name,
+        categoryId: activeCategory.id,
+        brand,
+        priceUsd: Number(priceUsd),
+        discountPercent: Number(discountPercent),
+        unit,
+        rating: 4.8,
+        reviewCount: 1,
+        stockCount: Number(stock),
+        inStock: Number(stock) > 0,
+        image: image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80',
+        description,
+        isPromo: Number(discountPercent) > 0 || activeCategory.isPromoCategory,
+      });
+      triggerToast('Nouveau produit publié dans votre rayon !');
+    }
+    setIsModalOpen(false);
+    setEditingProduct(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 font-bold text-sm">
+          <Check className="w-5 h-5 bg-white text-emerald-600 rounded-full p-0.5" />
+          <span>{toast}</span>
+        </div>
+      )}
+
       {/* Top Banner */}
       <div className="bg-[#1C2024] text-white">
         <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -127,10 +183,10 @@ export const AgentPanel: React.FC = () => {
             <select
               aria-label="Sélectionner le rayon actif"
               className="bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-xl border border-gray-700 cursor-pointer"
-              value={activeCategory.id}
+              value={selectedCatId}
               onChange={(e) => setSelectedCatId(e.target.value)}
             >
-              {myCategories.map((c) => (
+              {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} {c.isPromoCategory ? '🔥 (Promos)' : ''}
                 </option>
@@ -160,6 +216,9 @@ export const AgentPanel: React.FC = () => {
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-1">{activeCategory.description}</p>
+              <p className="text-xs font-semibold text-emerald-600 mt-1">
+                Responsable : {activeCategory.assignedAgentName || currentUser?.name}
+              </p>
             </div>
           </div>
 
@@ -260,8 +319,7 @@ export const AgentPanel: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        aria-label={`Supprimer ${prod.name}`}
-                        onClick={() => confirm(`Supprimer « ${prod.name} » du catalogue ?`) && deleteProduct(prod.id)}
+                        onClick={() => deleteProduct(prod.id)}
                         className="p-1 text-red-500 hover:text-red-700 rounded"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -354,18 +412,77 @@ export const AgentPanel: React.FC = () => {
                 />
               </div>
 
-              <ProductPhotoPicker
-                image={image}
-                onImage={setImage}
-                productName={name}
-                onDetails={(d) => {
-                  // On ne remplace jamais ce que l'agent a déjà saisi.
-                  if (d.name && !name.trim()) setName(d.name);
-                  if (d.brand && (!brand.trim() || brand === 'Gomarché Sélection')) setBrand(d.brand);
-                  if (d.unit && (!unit.trim() || unit === 'le kg')) setUnit(d.unit);
-                  if (d.description && !description.trim()) setDescription(d.description);
-                }}
-              />
+              {/* Photo du produit: Upload or Link */}
+              <div className="space-y-2 pt-1 border-t border-gray-100">
+                <label className="block text-xs font-bold text-gray-700">Photo du produit</label>
+                {image && (
+                  <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-200">
+                    <img
+                      src={image}
+                      alt="Aperçu"
+                      className="w-12 h-12 rounded-lg object-contain bg-white border border-gray-200 p-0.5"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[11px] font-bold text-gray-800 block truncate">Photo enregistrée</span>
+                      <span className="text-[10px] text-gray-500 block truncate">{image}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setImage('')}
+                      className="p-1 text-red-500 hover:text-red-700"
+                      title="Supprimer la photo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                <label className="flex items-center justify-center gap-2 w-full py-2.5 px-3 bg-white border border-dashed border-gray-300 hover:border-gray-400 rounded-xl cursor-pointer text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs">
+                  {isUploadingImage ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                      <span>Téléversement de la photo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-emerald-600" />
+                      <span>Uploader une photo depuis cet appareil</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploadingImage}
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingImage(true);
+                      try {
+                        const url = await uploadImageFile(file, 'agent_product');
+                        if (url) {
+                          setImage(url);
+                        }
+                      } finally {
+                        setIsUploadingImage(false);
+                      }
+                    }}
+                  />
+                </label>
+
+                <div>
+                  <span className="text-[10px] text-gray-500 block mb-1 font-semibold">
+                    Ou coller un lien URL web alternatif :
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="https://.../produit.jpg"
+                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl"
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                  />
+                </div>
+              </div>
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Description</label>

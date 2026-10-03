@@ -20,8 +20,7 @@ import {
   Compass,
   Phone,
 } from 'lucide-react';
-import { AppView, useApp } from '../context/AppContext';
-import { ROLE_LABELS } from '../types';
+import { useApp } from '../context/AppContext';
 import { AirtelMoneyLogo, OrangeMoneyLogo, MpesaLogo, AfriMoneyLogo } from './MobileMoneyLogos';
 
 export const Header: React.FC = () => {
@@ -77,20 +76,9 @@ export const Header: React.FC = () => {
     }
   };
 
-  // Espaces de travail accessibles selon le rôle (le premier est l'espace principal).
-  const STAFF_LINKS: Record<string, { view: AppView; label: string }[]> = {
-    admin: [
-      { view: 'admin', label: 'Administration' },
-      { view: 'cashier', label: 'Caisse & paiements' },
-      { view: 'prep', label: 'Préparation des commandes' },
-      { view: 'agent', label: 'Catalogue des rayons' },
-    ],
-    category_agent: [{ view: 'agent', label: 'Mon rayon' }],
-    order_agent: [{ view: 'prep', label: 'Préparation des commandes' }],
-    cashier: [{ view: 'cashier', label: 'Caisse & paiements' }],
-    delivery_driver: [{ view: 'delivery', label: 'Espace livreur' }],
-  };
-  const staffLinks = (currentUser && STAFF_LINKS[currentUser.role]) || [];
+  const isSuperAdmin = currentUser?.role === 'admin';
+  const isAgent = currentUser?.role === 'category_agent';
+  const isDriver = currentUser?.role === 'delivery_driver';
 
   return (
     <header className="sticky top-0 z-40 bg-white shadow-xs border-b border-gray-100">
@@ -161,17 +149,37 @@ export const Header: React.FC = () => {
 
             {/* Secure Role Badges (Only shown to authenticated staff) */}
             <div className="flex items-center gap-2 text-[11px]">
-              {staffLinks[0] && (
+              {isSuperAdmin && (
                 <button
                   type="button"
-                  onClick={() => setActiveView(staffLinks[0].view)}
-                  className="bg-white/10 text-white border border-white/30 rounded-lg px-2.5 py-1 text-[11px] font-bold flex items-center gap-1.5 hover:bg-white/20 transition-colors"
+                  onClick={() => setActiveView('admin')}
+                  className="bg-red-950/80 text-red-200 border border-red-500/80 rounded-lg px-2.5 py-1 text-[11px] font-bold flex items-center gap-1.5 hover:bg-red-900 transition-colors shadow-xs"
                 >
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>{staffLinks[0].label}</span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-red-400" />
+                  <span>👑 Panneau Admin</span>
                 </button>
               )}
-              {staffLinks.length === 0 && (
+              {isAgent && (
+                <button
+                  type="button"
+                  onClick={() => setActiveView('agent')}
+                  className="bg-emerald-950/80 text-emerald-200 border border-emerald-500/80 rounded-lg px-2.5 py-1 text-[11px] font-bold flex items-center gap-1.5 hover:bg-emerald-900 transition-colors"
+                >
+                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>🏷️ Mon Rayon</span>
+                </button>
+              )}
+              {isDriver && (
+                <button
+                  type="button"
+                  onClick={() => setActiveView('delivery')}
+                  className="bg-blue-950/80 text-blue-200 border border-blue-500/80 rounded-lg px-2.5 py-1 text-[11px] font-bold flex items-center gap-1.5 hover:bg-blue-900 transition-colors"
+                >
+                  <Truck className="w-3.5 h-3.5 text-blue-400" />
+                  <span>🛵 Espace Livreur</span>
+                </button>
+              )}
+              {!isSuperAdmin && !isAgent && !isDriver && (
                 <span className="text-gray-300 text-[11px] flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="hidden lg:inline text-gray-400">Assistance Goma :</span>
@@ -338,7 +346,7 @@ export const Header: React.FC = () => {
                     <UserIcon className="w-5 h-5 text-gray-600" />
                   </div>
                 )}
-                {currentUser?.role === 'admin' && (
+                {isSuperAdmin && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 border-2 border-white rounded-full flex items-center justify-center text-[9px] text-white font-bold">
                     ★
                   </span>
@@ -370,7 +378,10 @@ export const Header: React.FC = () => {
                       <p className="text-sm font-bold text-gray-900">{currentUser.name}</p>
                       <div className="mt-1 flex items-center justify-between">
                         <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-[#E2001A]">
-                          {ROLE_LABELS[currentUser.role]}
+                          {isSuperAdmin && '👑 Administrateur'}
+                          {isAgent && '🏷️ Agent de Rayon'}
+                          {isDriver && '🛵 Livreur Goma'}
+                          {!isSuperAdmin && !isAgent && !isDriver && <>🛒 Client <span translate="no" className="notranslate">Gomarché</span></>}
                         </span>
                         <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                           {currentUser.loyaltyPoints} pts
@@ -378,27 +389,55 @@ export const Header: React.FC = () => {
                       </div>
                     </div>
 
-                    {staffLinks.map((link, i) => (
+                    {/* Admin Links */}
+                    {isSuperAdmin && (
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveView('admin');
+                            setIsAccountDropdownOpen(false);
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-xs font-bold text-white bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 flex items-center justify-between my-1 rounded-xl mx-2 max-w-[calc(100%-16px)]"
+                        >
+                          <span className="flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>Pannel Super Admin <span translate="no" className="notranslate">Gomarché</span></span>
+                          </span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Agent Link */}
+                    {(isAgent || isSuperAdmin) && (
                       <button
-                        key={link.view}
                         type="button"
                         onClick={() => {
-                          setActiveView(link.view);
+                          setActiveView('agent');
                           setIsAccountDropdownOpen(false);
                         }}
-                        className={
-                          i === 0
-                            ? 'w-full px-4 py-2.5 text-left text-xs font-bold text-white bg-gray-900 hover:bg-black flex items-center justify-between my-1 rounded-xl mx-2 max-w-[calc(100%-16px)]'
-                            : 'w-full px-4 py-2.5 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2'
-                        }
+                        className="w-full px-4 py-2.5 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                       >
-                        <span className="flex items-center gap-2">
-                          <ShieldCheck className={`w-4 h-4 ${i === 0 ? '' : 'text-emerald-600'}`} />
-                          <span>{link.label}</span>
-                        </span>
-                        {i === 0 && <ArrowRight className="w-3.5 h-3.5" />}
+                        <Layers className="w-4 h-4 text-emerald-600" />
+                        <span>Gestion de mon Rayon (Agent)</span>
                       </button>
-                    ))}
+                    )}
+
+                    {/* Driver Link with GPS */}
+                    {(isDriver || isSuperAdmin) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveView('delivery');
+                          setIsAccountDropdownOpen(false);
+                        }}
+                        className="w-full px-4 py-2.5 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Compass className="w-4 h-4 text-blue-600" />
+                        <span>Espace Livreur & Tracé GPS Goma</span>
+                      </button>
+                    )}
 
                     {/* Client Orders & Activity History */}
                     <button
@@ -410,7 +449,7 @@ export const Header: React.FC = () => {
                       className="w-full px-4 py-2.5 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                     >
                       <Package className="w-4 h-4 text-gray-500" />
-                      <span>Mes commandes & mon profil</span>
+                      <span>Mes Commandes en cours & Historique</span>
                     </button>
 
                     <div className="border-t border-gray-100 my-1 pt-1">

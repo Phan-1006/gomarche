@@ -20,9 +20,6 @@ import { ProductDetailModal } from './components/ProductDetailModal';
 import { AdminPanel } from './components/AdminPanel';
 import { AgentPanel } from './components/AgentPanel';
 import { DeliveryDriverPanel } from './components/DeliveryDriverPanel';
-import { PrepPanel } from './components/PrepPanel';
-import { CashierPanel } from './components/CashierPanel';
-import { isActiveOrder } from './utils/orders';
 import { OrderTrackingView } from './components/OrderTrackingView';
 import { PromotionsView } from './components/PromotionsView';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
@@ -38,10 +35,9 @@ const MobileBottomNav: React.FC = () => {
     currentUser,
     orders,
     setSelectedCategoryFilter,
-    homeViewFor,
   } = useApp();
 
-  const pendingOrdersCount = orders.filter(isActiveOrder).length;
+  const pendingOrdersCount = orders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled').length;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 py-2 px-3 flex items-center justify-around md:hidden shadow-2xl backdrop-blur-md bg-white/95">
@@ -119,14 +115,19 @@ const MobileBottomNav: React.FC = () => {
         onClick={() => {
           if (!currentUser) {
             setIsAuthOpen(true);
+          } else if (currentUser.role === 'admin') {
+            setActiveView('admin');
+          } else if (currentUser.role === 'delivery_driver') {
+            setActiveView('delivery');
+          } else if (currentUser.role === 'category_agent') {
+            setActiveView('agent');
           } else {
-            const home = homeViewFor(currentUser);
-            setActiveView(home === 'home' ? 'orders' : home);
+            setActiveView('orders');
           }
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         className={`flex flex-col items-center gap-1 ${
-          ['admin', 'agent', 'prep', 'cashier', 'delivery'].includes(activeView) ? 'text-[#E2001A]' : 'text-gray-500'
+          activeView === 'admin' ? 'text-[#E2001A]' : 'text-gray-500'
         }`}
       >
         <UserIcon className="w-5 h-5" />
@@ -169,10 +170,6 @@ const GomarcheContent: React.FC = () => {
         {activeView === 'agent' && <AgentPanel />}
 
         {activeView === 'delivery' && <DeliveryDriverPanel />}
-
-        {activeView === 'prep' && <PrepPanel />}
-
-        {activeView === 'cashier' && <CashierPanel />}
 
         {activeView === 'orders' && <OrderTrackingView />}
 

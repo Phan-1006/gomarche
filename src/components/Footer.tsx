@@ -50,9 +50,9 @@ export const Footer: React.FC = () => {
               <RotateCcw className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="font-black text-sm text-white">Annulation simple</h4>
+              <h4 className="font-black text-sm text-white">Annulation sous 24h</h4>
               <p className="text-xs text-gray-400 mt-0.5">
-                Gratuite tant que la préparation n’a pas commencé
+                Remboursement immédiat avant réception effective
               </p>
             </div>
           </div>
@@ -163,7 +163,7 @@ export const Footer: React.FC = () => {
             <li>Livraison Express (Moins de 45 min)</li>
             <li>Tracé de livraison GPS en direct</li>
             <li>Code secret de confirmation client</li>
-            <li>Annulation avant préparation</li>
+            <li>Annulation sous 24h garantie</li>
             <li>Drive Retrait Bd Kanyamuhanga</li>
             <li>Application PWA Mobile Goma</li>
           </ul>

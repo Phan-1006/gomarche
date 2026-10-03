@@ -1,52 +1,28 @@
-export type Role =
-  | 'admin'
-  | 'category_agent' // gère le catalogue de ses rayons
-  | 'order_agent' // prépare (réclame) les commandes en magasin
-  | 'cashier' // suit et valide les paiements
-  | 'delivery_driver'
-  | 'customer';
-
-export type StaffRole = Exclude<Role, 'admin' | 'customer'>;
-
-export const STAFF_ROLES: StaffRole[] = ['order_agent', 'delivery_driver', 'cashier', 'category_agent'];
-
-export const ROLE_LABELS: Record<Role, string> = {
-  admin: 'Administrateur',
-  category_agent: 'Agent de rayon (catalogue)',
-  order_agent: 'Agent préparateur de commandes',
-  cashier: 'Agent caissier',
-  delivery_driver: 'Livreur',
-  customer: 'Client',
-};
+export type Role = 'admin' | 'category_agent' | 'delivery_driver' | 'customer';
 
 export type Currency = 'USD' | 'CDF';
+
+export interface UserActivity {
+  id: string;
+  userId: string;
+  type: 'login' | 'order_placed' | 'payment_confirmed' | 'order_cancelled' | 'delivery_confirmed';
+  title: string;
+  description: string;
+  timestamp: string;
+}
 
 export interface User {
   id: string;
   email: string;
   name: string;
   role: Role;
+  password?: string;
   avatar?: string;
   phone?: string;
   address?: string;
   commune?: string;
-  assignedCategoryIds?: string[]; // rayons d'un agent de rayon (vide = tous)
+  assignedCategoryId?: string; // For category agent
   loyaltyPoints: number;
-  hasPassword?: boolean;
-}
-
-// Employé nommé par l'admin via son adresse e-mail
-export interface StaffMember {
-  email: string;
-  role: StaffRole;
-  name: string;
-  phone?: string;
-  assignedCategoryIds?: string[];
-  active: boolean;
-  createdAt: number;
-  // renseignés par le serveur
-  hasAccount?: boolean;
-  lastLoginAt?: number;
 }
 
 export interface Category {
@@ -56,6 +32,9 @@ export interface Category {
   description: string;
   image: string;
   iconName: string;
+  assignedAgentId?: string;
+  assignedAgentName?: string;
+  assignedAgentEmail?: string;
   isPromoCategory?: boolean;
   displayOrder: number;
 }
@@ -89,171 +68,87 @@ export interface CartItem {
 
 export type PaymentMethod = 'airtel_money' | 'orange_money' | 'mpesa' | 'afrimoney';
 
-export type GatewayKey = 'airtel' | 'orange' | 'mpesa' | 'afrimoney';
-
-export const METHOD_TO_GATEWAY: Record<PaymentMethod, GatewayKey> = {
-  airtel_money: 'airtel',
-  orange_money: 'orange',
-  mpesa: 'mpesa',
-  afrimoney: 'afrimoney',
-};
-
-// Informations publiques d'un opérateur. Aucune clé secrète ici : les secrets vivent dans les
-// variables d'environnement du serveur.
 export interface PaymentGatewayItemConfig {
+  merchantId: string;
+  apiKey: string;
+  secretKey?: string;
+  passKey?: string;
+  webhookUrl: string;
   enabled: boolean;
-  displayName?: string;
-  merchantNumber: string; // numéro marchand vers lequel le client envoie l'argent
-  merchantName: string; // nom affiché chez l'opérateur lors du transfert
+  sandboxMode: boolean;
   phonePrefix: string;
   customLogoUrl?: string;
+  displayName?: string;
   instructions?: string;
 }
 
-export type PaymentGatewayConfig = Record<GatewayKey, PaymentGatewayItemConfig>;
+export interface PaymentGatewayConfig {
+  airtel: PaymentGatewayItemConfig;
+  orange: PaymentGatewayItemConfig;
+  mpesa: PaymentGatewayItemConfig;
+  afrimoney: PaymentGatewayItemConfig;
+}
 
-export type OrderStatus =
-  | 'awaiting_payment'
-  | 'confirmed' // paiement (ou garantie) validé, à préparer
-  | 'preparing'
-  | 'ready'
-  | 'in_delivery'
-  | 'delivered'
-  | 'cancelled';
+export type OrderStatus = 'paid' | 'preparing' | 'in_delivery' | 'delivered' | 'cancelled';
 
 export interface OrderCustomerInfo {
   name: string;
   email: string;
   phone: string;
   address: string;
-  quartierGoma: string;
+  quartierGoma: string; // Exclusively Goma quartiers
   city: 'Goma';
   deliveryNotes?: string;
-  coordinates?: LatLng;
-}
-
-export interface LatLng {
-  lat: number;
-  lng: number;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 export interface DeliverySlotConfig {
   id: string;
   label: string;
-  startTime: string; // "HH:MM" heure de Goma
-  endTime: string; // "HH:MM"
+  timeRange: string;
   priceUsd: number;
   isExpress?: boolean;
   active: boolean;
 }
 
-export interface DeliveryHoursConfig {
-  start: string; // première livraison possible "HH:MM"
-  end: string; // dernière livraison "HH:MM"
-  prepMinutes: number; // délai minimal de préparation avant livraison
-  expressMinutes: number; // délai promis en express
-  daysAhead: number; // jours réservables à l'avance
-  closedWeekdays: number[]; // 0 = dimanche
-}
-
-// Créneau concret (date + fenêtre) calculé par le serveur
-export interface DeliveryOption {
-  key: string; // `${date}|${slotId}`
-  slotId: string;
-  date: string; // YYYY-MM-DD (Goma)
-  dayLabel: string; // "Aujourd'hui", "Demain", "lun. 5 oct."
-  label: string;
-  startTime: string;
-  endTime: string;
-  priceUsd: number;
-  isExpress: boolean;
-  recommended: boolean;
-}
-
-export type PaymentMode = 'prepaid' | 'cod';
-
-export type PaymentPurpose = 'order_total' | 'delivery_deposit' | 'cod_balance';
-
-export type PaymentStatus =
-  | 'pending' // en attente du client
-  | 'submitted' // référence envoyée, à vérifier par la caisse
-  | 'confirmed'
-  | 'rejected'
-  | 'refund_due'
-  | 'refunded';
-
-export interface PaymentRecord {
-  id: string;
-  purpose: PaymentPurpose;
-  method: PaymentMethod | 'cash';
-  amountUsd: number;
-  amountCdf: number;
-  status: PaymentStatus;
-  payerPhone?: string;
-  transactionRef?: string;
-  submittedAt?: number;
-  confirmedAt?: number;
-  confirmedByName?: string;
-  collectedByDriverAt?: number; // espèces encaissées par le livreur
-  note?: string;
-}
-
-export interface OrderItem {
-  productId: string;
-  name: string;
-  brand: string;
-  unit: string;
-  image: string;
-  unitPriceUsd: number; // prix remisé figé à la commande
-  quantity: number;
-}
-
 export interface Order {
   id: string;
   orderNumber: string;
-  createdAt: number;
-  userId: string;
+  date: string;
+  createdAtTimestamp: number;
   customer: OrderCustomerInfo;
-  items: OrderItem[];
+  items: CartItem[];
   subtotalUsd: number;
+  subtotalCdf: number;
   deliveryFeeUsd: number;
+  deliveryFeeCdf: number;
   totalUsd: number;
-  exchangeRate: number; // taux figé à la commande
   totalCdf: number;
-  paymentMode: PaymentMode;
-  payments: PaymentRecord[];
+  paymentMethod: PaymentMethod;
+  paymentStatus: 'pending' | 'completed' | 'failed';
+  transactionRef: string;
   status: OrderStatus;
-  deliveryMode: 'delivery' | 'drive';
-  deliverySlotId: string;
-  deliveryDate: string; // YYYY-MM-DD
-  deliverySlotName: string;
-  deliveryWindowStart: number; // timestamp
-  deliveryWindowEnd: number;
-  preparerId?: string;
-  preparerName?: string;
   deliveryDriverId?: string;
   deliveryDriverName?: string;
   deliveryDriverPhone?: string;
-  claimedByDriverAt?: number;
-  departedAt?: number;
-  deliveredAt?: number;
-  cancelledAt?: number;
-  cancelReason?: string;
+  deliveryMode: 'delivery' | 'drive';
+  deliverySlotId: string;
+  deliverySlotName: string;
   loyaltyPointsEarned: number;
-  confirmationCode?: string; // visible uniquement par le client (et l'admin)
-  driverLocation?: LatLng & { at: number; accuracy?: number };
-  unreadHint?: number; // nb de messages de l'autre partie
-  history: { at: number; status: OrderStatus; by: string }[];
-}
-
-export interface ChatMessage {
-  id: string;
-  orderId: string;
-  senderId: string;
-  senderName: string;
-  senderRole: Role;
-  text: string;
-  at: number;
+  confirmationCode: string; // 6-digit secure handover PIN e.g. "GM-9412" or "841920"
+  cancellationDeadlineTimestamp: number; // 24 hours after creation
+  deliveredAtTimestamp?: number;
+  confirmedByDriver?: boolean;
+  cancelledAtTimestamp?: number;
+  cancelReason?: string;
+  driverCurrentLocation?: {
+    lat: number;
+    lng: number;
+    estimatedMinutesRemaining: number;
+  };
 }
 
 export interface HeroBanner {
@@ -281,43 +176,25 @@ export interface SiteConfig {
   backgroundColor: string;
   exchangeRateUsdToCdf: number; // e.g. 2850 CDF for 1 USD
   freeDeliveryThresholdUsd: number;
-
+  
   // Store contact info editable by Admin
   storeAddress: string;
   storePhone: string;
   storeEmail: string;
   storeCity: string;
   storeOpeningHours: string;
-  storeLocation: LatLng;
-
-  deliveryHours: DeliveryHoursConfig;
+  
+  // Goma Delivery slots configured by Admin
   deliverySlots: DeliverySlotConfig[];
-
+  
   heroBanners: HeroBanner[];
   paymentGateways: PaymentGatewayConfig;
-  codEnabled: boolean; // paiement à la livraison (garantie = frais de livraison)
-  paymentTimeoutMinutes: number; // annulation auto d'une commande impayée
-  maxActiveDeliveriesPerDriver: number;
-  networkIcons: Record<GatewayKey, boolean>;
-
-  // renseignés par le serveur (lecture seule)
-  updatedAt?: number;
-  turnstileSiteKey?: string;
-  lensEnabled?: boolean;
-}
-
-export interface AuditEntry {
-  id: string;
-  at: number;
-  actorEmail: string;
-  action: string;
-  detail: string;
-}
-
-export interface LensSuggestion {
-  name?: string;
-  brand?: string;
-  description?: string;
-  unit?: string;
-  images: { url: string; thumb: string; source: string; title?: string }[];
+  networkIcons: {
+    airtel: boolean;
+    orange: boolean;
+    mpesa: boolean;
+    afrimoney: boolean;
+  };
+  adminPassword?: string;
+  googleClientId?: string;
 }

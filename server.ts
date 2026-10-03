@@ -1,186 +1,180 @@
-import 'dotenv/config';
-import crypto from 'crypto';
+import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import express from 'express';
-import helmet from 'helmet';
-import { db, ROOT_DIR, UPLOADS_DIR } from './server/db';
-import { apiLimiter, csrfGuard, IS_PROD, loadSession, safeEqual } from './server/security';
-import { authRouter, bootstrapAdmin } from './server/auth';
-import { catalogRouter } from './server/catalog';
-import { applyWebhookPayment, ordersRouter, sweepUnpaidOrders } from './server/orders';
-import { lensRouter } from './server/lens';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
-app.disable('x-powered-by');
-// Derrière un proxy (Cloud Run, Nginx...) : nécessaire pour lire la vraie adresse IP du client
-// (limitation de débit) et savoir que la connexion est en HTTPS (cookie sécurisé).
-app.set('trust proxy', Number(process.env.TRUST_PROXY ?? 1));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-app.use(
-  helmet({
-    // En développement, Vite injecte des scripts en ligne : la politique stricte ne vaut qu'en production.
-    contentSecurityPolicy: IS_PROD
-      ? {
-          directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", 'https://apis.google.com', 'https://challenges.cloudflare.com'],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-            connectSrc: ["'self'", 'https://*.googleapis.com', 'https://*.firebaseapp.com'],
-            frameSrc: ['https://*.firebaseapp.com', 'https://accounts.google.com', 'https://challenges.cloudflare.com'],
-            objectSrc: ["'none'"],
-            baseUri: ["'self'"],
-            formAction: ["'self'"],
-            frameAncestors: ["'none'"],
-          },
-        }
-      : false,
-    // La fenêtre de connexion Google (popup) doit pouvoir répondre à la page.
-    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
-    crossOriginEmbedderPolicy: false,
-    // Les serveurs de tuiles OpenStreetMap exigent de connaître le site appelant (origine seule, jamais le chemin).
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  })
-);
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 
-// Fichiers envoyés : servis comme simples images, jamais interprétés comme page.
-app.use(
-  '/uploads',
-  express.static(UPLOADS_DIR, {
-    index: false,
-    maxAge: '30d',
-    immutable: true,
-    setHeaders: (res) => {
-      res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-    },
-  })
-);
+const CONFIG_FILE = path.join(DATA_DIR, 'site-config.json');
+const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+const CATEGORIES_FILE = path.join(DATA_DIR, 'categories.json');
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 
-// Manifeste PWA généré depuis la configuration : le nom et l'icône choisis par l'admin
-// s'appliquent à tous les appareils, sans redéploiement.
-const DEFAULT_ICON =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23E2001A'/%3E%3Cpath d='M25 35h50l-6 32H31z' fill='white'/%3E%3Ccircle cx='38' cy='75' r='6' fill='white'/%3E%3Ccircle cx='62' cy='75' r='6' fill='white'/%3E%3Ccircle cx='50' cy='48' r='10' fill='%23009640'/%3E%3C/svg%3E";
+// Serve uploaded assets
+app.use('/uploads', express.static(UPLOADS_DIR));
 
-app.get('/manifest.webmanifest', (_req, res) => {
-  const c = db.config;
-  const icon = c.pwaIconUrl || c.customLogoUrl;
-  const v = c.updatedAt || 0;
-  const iconType = icon.endsWith('.png') ? 'image/png' : icon.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
-  res.set('Cache-Control', 'no-cache');
-  res.type('application/manifest+json').send({
-    name: `${c.siteName} - Supermarché en Ligne`,
-    short_name: c.siteName.split(' ')[0],
-    description: c.tagline,
-    start_url: '/',
-    display: 'standalone',
-    orientation: 'portrait-primary',
-    theme_color: c.primaryColor,
-    background_color: '#ffffff',
-    icons: icon
-      ? [192, 512].map((size) => ({ src: `${icon}${icon.includes('?') ? '&' : '?'}v=${v}`, sizes: `${size}x${size}`, type: iconType, purpose: 'any' }))
-      : [{ src: DEFAULT_ICON, sizes: '192x192 512x512', type: 'image/svg+xml', purpose: 'any maskable' }],
-  });
-});
-
-// ---------------------------------------------------------------- API
-
-// Notification de paiement d'un agrégateur Mobile Money. Le corps brut est signé (HMAC-SHA256)
-// avec PAYMENT_WEBHOOK_SECRET : sans signature valide, rien n'est validé.
-app.post('/api/payments/webhook', apiLimiter, express.raw({ type: '*/*', limit: '64kb' }), (req, res) => {
-  const secret = process.env.PAYMENT_WEBHOOK_SECRET;
-  if (!secret) return res.status(404).end();
-  const raw: Buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
-  const expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');
-  if (!safeEqual(String(req.headers['x-gomarche-signature'] || ''), expected)) {
-    return res.status(401).json({ error: 'Signature invalide.' });
-  }
-  let body: any;
+// 1. API: Get persistent site config (shared across all devices)
+app.get('/api/site-config', (req, res) => {
   try {
-    body = JSON.parse(raw.toString('utf-8'));
-  } catch {
-    return res.status(400).json({ error: 'JSON invalide.' });
+    if (fs.existsSync(CONFIG_FILE)) {
+      const content = fs.readFileSync(CONFIG_FILE, 'utf-8');
+      if (content && content.trim() && content.trim() !== '{}') {
+        return res.json(JSON.parse(content));
+      }
+    }
+    const srcPersisted = path.join(__dirname, 'src', 'data', 'persistedSiteConfig.json');
+    if (fs.existsSync(srcPersisted)) {
+      const content = fs.readFileSync(srcPersisted, 'utf-8');
+      if (content && content.trim() && content.trim() !== '{}') {
+        const parsed = JSON.parse(content);
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
+        return res.json(parsed);
+      }
+    }
+  } catch (e) {
+    console.error('Error reading site config:', e);
   }
-  if (body.status !== 'success') return res.json({ ok: true, ignored: true });
-  const result = applyWebhookPayment({
-    orderNumber: String(body.orderNumber || ''),
-    transactionRef: String(body.transactionRef || '').slice(0, 40),
-    amount: Number(body.amount),
-    currency: String(body.currency || ''),
-  });
-  if (result.error) return res.status(result.status).json({ error: result.error });
-  res.json({ ok: true });
+  return res.json(null);
 });
 
-const smallJson = express.json({ limit: '100kb' });
-const imageJson = express.json({ limit: '8mb' });
-const IMAGE_ROUTES = new Set(['/upload', '/lens/identify']);
-
-const api = express.Router();
-api.use(apiLimiter);
-api.use(csrfGuard);
-api.use((req, res, next) => (IMAGE_ROUTES.has(req.path) ? imageJson : smallJson)(req, res, next));
-api.use(loadSession);
-api.use((_req, res, next) => {
-  res.set('Cache-Control', 'no-store');
-  next();
-});
-api.use(authRouter);
-api.use(catalogRouter);
-api.use(ordersRouter);
-api.use(lensRouter);
-api.use((_req, res) => res.status(404).json({ error: 'Ressource inconnue.' }));
-app.use('/api', api);
-
-app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (res.headersSent) return next(err);
-  if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'Envoi trop volumineux.' });
-  if (err?.type === 'entity.parse.failed') return res.status(400).json({ error: 'Requête illisible.' });
-  console.error(err);
-  // Jamais de détail technique vers le client.
-  res.status(500).json({ error: 'Erreur interne. Réessayez.' });
+// 2. API: Save persistent site config (shared across all devices)
+app.post('/api/site-config', (req, res) => {
+  try {
+    const config = req.body;
+    if (!config || typeof config !== 'object') {
+      return res.status(400).json({ error: 'Configuration invalide' });
+    }
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+    const srcPersisted = path.join(__dirname, 'src', 'data', 'persistedSiteConfig.json');
+    fs.writeFileSync(srcPersisted, JSON.stringify(config, null, 2), 'utf-8');
+    return res.json({ success: true, config });
+  } catch (err: any) {
+    console.error('Error saving site config:', err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
+// 3. API: Get persistent products
+app.get('/api/products', (req, res) => {
+  try {
+    if (fs.existsSync(PRODUCTS_FILE)) {
+      const content = fs.readFileSync(PRODUCTS_FILE, 'utf-8');
+      if (content && content.trim()) {
+        return res.json(JSON.parse(content));
+      }
+    }
+  } catch (e) {
+    console.error('Error reading products:', e);
+  }
+  return res.json(null);
+});
+
+// 4. API: Save persistent products
+app.post('/api/products', (req, res) => {
+  try {
+    const prods = req.body;
+    if (!Array.isArray(prods)) {
+      return res.status(400).json({ error: 'Liste de produits invalide' });
+    }
+    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(prods, null, 2), 'utf-8');
+    return res.json({ success: true, count: prods.length });
+  } catch (err: any) {
+    console.error('Error saving products:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 4b. API: Get persistent categories
+app.get('/api/categories', (req, res) => {
+  try {
+    if (fs.existsSync(CATEGORIES_FILE)) {
+      const content = fs.readFileSync(CATEGORIES_FILE, 'utf-8');
+      if (content && content.trim()) {
+        return res.json(JSON.parse(content));
+      }
+    }
+  } catch (e) {
+    console.error('Error reading categories:', e);
+  }
+  return res.json(null);
+});
+
+// 4c. API: Save persistent categories
+app.post('/api/categories', (req, res) => {
+  try {
+    const cats = req.body;
+    if (!Array.isArray(cats)) {
+      return res.status(400).json({ error: 'Liste de catégories invalide' });
+    }
+    fs.writeFileSync(CATEGORIES_FILE, JSON.stringify(cats, null, 2), 'utf-8');
+    return res.json({ success: true, count: cats.length });
+  } catch (err: any) {
+    console.error('Error saving categories:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. API: Image upload (handles base64 data URLs)
+app.post('/api/upload', (req, res) => {
+  try {
+    const { imageBase64, filename } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Image requise' });
+    }
+    const matches = imageBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      // If it's already a URL, return it
+      return res.json({ url: imageBase64 });
+    }
+    let ext = (matches[1].split('/')[1] || 'png').toLowerCase().replace('+xml', '');
+    if (ext === 'jpeg') ext = 'jpg';
+    const safeName = (filename ? filename.replace(/[^a-zA-Z0-9_-]/g, '_') : 'img') + '-' + Date.now() + '.' + ext;
+    const filePath = path.join(UPLOADS_DIR, safeName);
+    fs.writeFileSync(filePath, Buffer.from(matches[2], 'base64'));
+    return res.json({ url: `/uploads/${safeName}` });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Setup Vite middleware in dev or static files in production
 async function startServer() {
-  bootstrapAdmin();
-  sweepUnpaidOrders();
-  setInterval(sweepUnpaidOrders, 60_000).unref();
+  const isProduction = process.env.NODE_ENV === 'production';
 
-  if (!IS_PROD) {
+  if (!isProduction) {
     const { createServer } = await import('vite');
-    const vite = await createServer({ server: { middlewareMode: true }, appType: 'spa' });
+    const vite = await createServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
     app.use(vite.middlewares);
   } else {
-    const dist = path.join(ROOT_DIR, 'dist');
-    // Les fichiers à empreinte (assets/) peuvent être mis en cache longtemps ; index.html jamais,
-    // pour que chaque visite charge la dernière version.
-    app.use('/assets', express.static(path.join(dist, 'assets'), { maxAge: '1y', immutable: true, fallthrough: false }));
-    app.use(
-      express.static(dist, {
-        index: false,
-        maxAge: '1h',
-        setHeaders: (res, file) => {
-          if (file.endsWith('sw.js')) res.setHeader('Cache-Control', 'no-cache');
-        },
-      })
-    );
-    const indexHtml = () => fs.readFileSync(path.join(dist, 'index.html'), 'utf-8');
-    app.get('*', (_req, res) => {
-      res.set('Cache-Control', 'no-cache');
-      res.type('html').send(indexHtml());
+    app.use(express.static(path.join(__dirname, 'dist')));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
     });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Gomarché : serveur prêt sur http://localhost:${PORT}`);
-    if (!process.env.ADMIN_PASSWORD) console.log('Admin : connexion Google uniquement (ADMIN_PASSWORD non défini).');
+    console.log(`Gomarche server running on http://localhost:${PORT}`);
   });
 }
 
 startServer().catch((err) => {
-  console.error('Échec du démarrage :', err);
-  process.exit(1);
+  console.error('Failed to start server:', err);
 });

@@ -6,9 +6,3 @@ coverage/
 *.log
 .env*
 !.env.example
-
-# Données d'exploitation (comptes, commandes, images envoyées) : jamais dans Git
-data/db.json
-data/db.json.*
-data/uploads/
-data/products.json

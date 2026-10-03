@@ -1,4 +1,5 @@
-import { Category, Product, SiteConfig } from '../types';
+import { Category, Product, SiteConfig, User, Order, UserActivity } from '../types';
+import persistedSiteConfig from './persistedSiteConfig.json';
 
 export const GOMA_QUARTIERS = [
   'Les Volcans',
@@ -25,6 +26,9 @@ export const INITIAL_CATEGORIES: Category[] = [
     description: 'Produits frais de Goma, épicerie salée & sucrée, boissons et produits laitiers',
     image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80',
     iconName: 'Apple',
+    assignedAgentId: 'agent-food',
+    assignedAgentName: 'Jean-Paul M.',
+    assignedAgentEmail: 'agent.food@gomarche.cd',
     displayOrder: 1,
   },
   {
@@ -34,6 +38,9 @@ export const INITIAL_CATEGORIES: Category[] = [
     description: 'Hygiène, cosmétiques, soins de la peau et parfumerie',
     image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
     iconName: 'Sparkles',
+    assignedAgentId: 'agent-beauty',
+    assignedAgentName: 'Sarah B.',
+    assignedAgentEmail: 'agent.beauty@gomarche.cd',
     displayOrder: 2,
   },
   {
@@ -43,6 +50,9 @@ export const INITIAL_CATEGORIES: Category[] = [
     description: 'Produits ménagers, vaisselle, électroménager et linge',
     image: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=600&q=80',
     iconName: 'Home',
+    assignedAgentId: 'agent-home',
+    assignedAgentName: 'Christian L.',
+    assignedAgentEmail: 'agent.home@gomarche.cd',
     displayOrder: 3,
   },
   {
@@ -52,6 +62,9 @@ export const INITIAL_CATEGORIES: Category[] = [
     description: 'Vêtements hommes, femmes, enfants, maroquinerie et chaussures',
     image: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=600&q=80',
     iconName: 'Shirt',
+    assignedAgentId: 'agent-fashion',
+    assignedAgentName: 'Grâce M.',
+    assignedAgentEmail: 'agent.fashion@gomarche.cd',
     displayOrder: 4,
   },
   {
@@ -61,6 +74,9 @@ export const INITIAL_CATEGORIES: Category[] = [
     description: 'Smartphones, TV, accessoires audio, petit électro et multimédia',
     image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80',
     iconName: 'Tv',
+    assignedAgentId: 'agent-tech',
+    assignedAgentName: 'Eric M.',
+    assignedAgentEmail: 'agent.tech@gomarche.cd',
     displayOrder: 5,
   },
   {
@@ -70,6 +86,9 @@ export const INITIAL_CATEGORIES: Category[] = [
     description: 'Toutes les promos choc, déstockages et remises fidélité Gomarché Club',
     image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=600&q=80',
     iconName: 'Flame',
+    assignedAgentId: 'agent-promo',
+    assignedAgentName: 'David K. (Manager Promos)',
+    assignedAgentEmail: 'agent.promo@gomarche.cd',
     isPromoCategory: true,
     displayOrder: 6,
   },
@@ -268,11 +287,200 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
 ];
 
-// Coordonnées approximatives du centre de Goma (repli quand le magasin n'est pas encore positionné)
-export const GOMA_CENTER = { lat: -1.6792, lng: 29.2228 };
+export const INITIAL_USERS: User[] = [
+  {
+    id: 'user-admin',
+    email: 'Mughenyakavale@gmail.com',
+    name: 'Mughenya Kavale',
+    role: 'admin',
+    password: 'admin',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    phone: '+243 999 100 200',
+    address: 'Avenue du Gouverneur, Les Volcans',
+    commune: 'Goma',
+    loyaltyPoints: 1250,
+  },
+  {
+    id: 'agent-food',
+    email: 'agent.food@gomarche.cd',
+    name: 'Jean-Paul M.',
+    role: 'category_agent',
+    password: 'agent',
+    assignedCategoryId: 'cat-food',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    phone: '+243 970 111 222',
+    loyaltyPoints: 100,
+  },
+  {
+    id: 'agent-beauty',
+    email: 'agent.beauty@gomarche.cd',
+    name: 'Sarah B.',
+    role: 'category_agent',
+    password: 'agent',
+    assignedCategoryId: 'cat-beauty',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
+    phone: '+243 970 333 444',
+    loyaltyPoints: 80,
+  },
+  {
+    id: 'agent-promo',
+    email: 'agent.promo@gomarche.cd',
+    name: 'David K.',
+    role: 'category_agent',
+    password: 'agent',
+    assignedCategoryId: 'cat-promos',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+    phone: '+243 970 555 666',
+    loyaltyPoints: 150,
+  },
+  {
+    id: 'driver-patrick',
+    email: 'livreur@gomarche.cd',
+    name: 'Patrick I. (Livreur Moto Goma)',
+    role: 'delivery_driver',
+    password: 'livreur',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80',
+    phone: '+243 998 777 888',
+    address: 'Base Logistique Bd Kanyamuhanga, Goma',
+    loyaltyPoints: 50,
+  },
+  {
+    id: 'client-mireille',
+    email: 'client@gomarche.cd',
+    name: 'Mireille T.',
+    role: 'customer',
+    password: 'client',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
+    phone: '+243 819 876 543',
+    address: 'Avenue des Lilas N° 14',
+    commune: 'Himbi',
+    loyaltyPoints: 340,
+  },
+];
 
-// Zone desservie : toute position hors de ce cadre est refusée
-export const GOMA_BOUNDS = { minLat: -1.76, maxLat: -1.58, minLng: 29.1, maxLng: 29.32 };
+export const INITIAL_ORDERS: Order[] = [
+  {
+    id: 'order-101',
+    orderNumber: 'GM-GOMA-8902',
+    date: 'Aujourd’hui, 11:24',
+    createdAtTimestamp: Date.now() - 3600000, // 1 hour ago
+    cancellationDeadlineTimestamp: Date.now() + 23 * 3600000, // 23h remaining
+    confirmationCode: 'GM-7492',
+    customer: {
+      name: 'Mireille T.',
+      email: 'client@gomarche.cd',
+      phone: '+243 819 876 543',
+      address: 'Avenue des Lilas N° 14, vers le lac',
+      quartierGoma: 'Himbi',
+      city: 'Goma',
+      deliveryNotes: 'Portail métallique blanc en face de l’hôtel.',
+    },
+    items: [
+      {
+        product: INITIAL_PRODUCTS[0], // Huile 5L
+        quantity: 1,
+      },
+      {
+        product: INITIAL_PRODUCTS[1], // Riz 25kg
+        quantity: 1,
+      },
+    ],
+    subtotalUsd: 40.5,
+    subtotalCdf: 115425,
+    deliveryFeeUsd: 5.0, // Express delivery fee
+    deliveryFeeCdf: 14250,
+    totalUsd: 45.5,
+    totalCdf: 129675,
+    paymentMethod: 'mpesa',
+    paymentStatus: 'completed',
+    transactionRef: 'MPESA-GOMA-892401',
+    status: 'in_delivery',
+    deliveryDriverId: 'driver-patrick',
+    deliveryDriverName: 'Patrick I. (Livreur Moto Goma)',
+    deliveryDriverPhone: '+243 998 777 888',
+    deliveryMode: 'delivery',
+    deliverySlotId: 'slot-express',
+    deliverySlotName: 'Express Goma (< 45 min)',
+    loyaltyPointsEarned: 45,
+    driverCurrentLocation: {
+      lat: -1.6812,
+      lng: 29.2195,
+      estimatedMinutesRemaining: 12,
+    },
+  },
+  {
+    id: 'order-102',
+    orderNumber: 'GM-GOMA-8901',
+    date: 'Hier, 16:45',
+    createdAtTimestamp: Date.now() - 90000000, // > 24 hours ago
+    cancellationDeadlineTimestamp: Date.now() - 3600000,
+    confirmationCode: 'GM-3129',
+    customer: {
+      name: 'Alain K.',
+      email: 'kabongo@gmail.com',
+      phone: '+243 997 654 321',
+      address: 'Avenue de la Paix N° 34',
+      quartierGoma: 'Les Volcans',
+      city: 'Goma',
+    },
+    items: [
+      {
+        product: INITIAL_PRODUCTS[6], // Café Kivu
+        quantity: 2,
+      },
+      {
+        product: INITIAL_PRODUCTS[7], // Gel douche
+        quantity: 1,
+      },
+    ],
+    subtotalUsd: 13.8,
+    subtotalCdf: 39330,
+    deliveryFeeUsd: 2.5,
+    deliveryFeeCdf: 7125,
+    totalUsd: 16.3,
+    totalCdf: 46455,
+    paymentMethod: 'airtel_money',
+    paymentStatus: 'completed',
+    transactionRef: 'AIRTEL-GOMA-551029',
+    status: 'delivered',
+    deliveredAtTimestamp: Date.now() - 86000000,
+    confirmedByDriver: true,
+    deliveryDriverId: 'driver-patrick',
+    deliveryDriverName: 'Patrick I. (Livreur Moto Goma)',
+    deliveryDriverPhone: '+243 998 777 888',
+    deliveryMode: 'delivery',
+    deliverySlotId: 'slot-afternoon',
+    deliverySlotName: 'Après-midi (14h30 - 17h30)',
+    loyaltyPointsEarned: 16,
+  },
+];
+
+export const INITIAL_USER_ACTIVITIES: UserActivity[] = [
+  {
+    id: 'act-1',
+    userId: 'client-mireille',
+    type: 'login',
+    title: 'Connexion sécurisée',
+    description: 'Connexion réussie à votre compte client Gomarché Goma',
+    timestamp: 'Aujourd’hui, 11:15',
+  },
+  {
+    id: 'act-2',
+    userId: 'client-mireille',
+    type: 'order_placed',
+    title: 'Nouvelle commande GM-GOMA-8902',
+    description: 'Commande validée en Express pour Quartier Himbi (45.50 $)',
+    timestamp: 'Aujourd’hui, 11:24',
+  },
+  {
+    id: 'act-3',
+    userId: 'client-mireille',
+    type: 'payment_confirmed',
+    title: 'Paiement M-Pesa validé',
+    description: 'Transaction MPESA-GOMA-892401 confirmée instantanément via API',
+    timestamp: 'Aujourd’hui, 11:25',
+  },
+];
 
 export const INITIAL_SITE_CONFIG: SiteConfig = {
   siteName: 'Gomarché Goma',
@@ -285,29 +493,57 @@ export const INITIAL_SITE_CONFIG: SiteConfig = {
   secondaryColor: '#009640',
   backgroundColor: '#F8F9FA',
   exchangeRateUsdToCdf: 2850,
-  freeDeliveryThresholdUsd: 60.0,
+  freeDeliveryThresholdUsd: 60.0, // High threshold configurable by admin
 
+  // Store information editable by Admin
   storeAddress: 'Boulevard Kanyamuhanga, Quartier Les Volcans, Goma, RDC',
   storePhone: '+243 999 100 200',
   storeEmail: 'service@gomarche.cd',
   storeCity: 'Goma',
   storeOpeningHours: 'Lundi - Samedi : 07h30 - 21h00 | Dimanche : 08h00 - 20h00',
-  storeLocation: GOMA_CENTER,
 
-  deliveryHours: {
-    start: '08:00',
-    end: '20:00',
-    prepMinutes: 45,
-    expressMinutes: 45,
-    daysAhead: 2,
-    closedWeekdays: [],
-  },
+  // Goma Delivery slots with individual pricing configurable by admin
   deliverySlots: [
-    { id: 'slot-express', label: '⚡ Livraison Express Goma', startTime: '08:00', endTime: '20:00', priceUsd: 5.0, isExpress: true, active: true },
-    { id: 'slot-morning', label: 'Matinée', startTime: '09:00', endTime: '11:30', priceUsd: 2.0, active: true },
-    { id: 'slot-lunch', label: 'Midi & Déjeuner', startTime: '12:00', endTime: '14:30', priceUsd: 2.0, active: true },
-    { id: 'slot-afternoon', label: 'Après-midi', startTime: '15:00', endTime: '17:30', priceUsd: 2.5, active: true },
-    { id: 'slot-evening', label: 'Soirée', startTime: '18:00', endTime: '20:00', priceUsd: 3.0, active: true },
+    {
+      id: 'slot-express',
+      label: '⚡ Livraison Express Goma',
+      timeRange: 'Moins de 45 minutes',
+      priceUsd: 5.0,
+      isExpress: true,
+      active: true,
+    },
+    {
+      id: 'slot-morning',
+      label: 'Matinée',
+      timeRange: '08h30 - 11h30',
+      priceUsd: 2.0,
+      isExpress: false,
+      active: true,
+    },
+    {
+      id: 'slot-lunch',
+      label: 'Midi & Déjeuner',
+      timeRange: '11h30 - 14h30',
+      priceUsd: 2.0,
+      isExpress: false,
+      active: true,
+    },
+    {
+      id: 'slot-afternoon',
+      label: 'Après-midi',
+      timeRange: '14h30 - 17h30',
+      priceUsd: 2.5,
+      isExpress: false,
+      active: true,
+    },
+    {
+      id: 'slot-evening',
+      label: 'Soirée',
+      timeRange: '17h30 - 20h30',
+      priceUsd: 3.0,
+      isExpress: false,
+      active: true,
+    },
   ],
 
   heroBanners: [
@@ -326,7 +562,7 @@ export const INITIAL_SITE_CONFIG: SiteConfig = {
       image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1400&q=80',
       tag: 'Les Prix Choc Gomarché Goma',
       title: 'Jusqu’à -40% sur les Essentiels du Quotidien',
-      subtitle: 'Paiement Mobile Money (Airtel Money, Orange Money, M-Pesa, AfriMoney) ou à la livraison, avec suivi GPS.',
+      subtitle: 'Paiement direct sécurisé par Airtel Money, Orange Money, M-Pesa et AfriMoney avec suivi GPS.',
       ctaText: 'Voir les Promotions',
       categoryId: 'cat-promos',
       badgeBg: '#009640',
@@ -342,15 +578,51 @@ export const INITIAL_SITE_CONFIG: SiteConfig = {
       badgeBg: '#0055A5',
     },
   ],
-
   paymentGateways: {
-    airtel: { enabled: true, merchantNumber: '', merchantName: 'Gomarché', phonePrefix: '097, 099, 098' },
-    orange: { enabled: true, merchantNumber: '', merchantName: 'Gomarché', phonePrefix: '084, 085, 089' },
-    mpesa: { enabled: true, merchantNumber: '', merchantName: 'Gomarché', phonePrefix: '081, 082, 083' },
-    afrimoney: { enabled: true, merchantNumber: '', merchantName: 'Gomarché', phonePrefix: '090, 091' },
+    airtel: {
+      merchantId: 'AIRTEL_GOMARCHE_GOMA',
+      apiKey: 'ak_live_airtel_goma_8992a7f012b',
+      secretKey: 'sk_live_secret_goma_99812',
+      webhookUrl: 'https://api.gomarche.cd/v1/webhooks/airtel-money',
+      enabled: true,
+      sandboxMode: false,
+      phonePrefix: '097, 099, 098',
+    },
+    orange: {
+      merchantId: 'OM_GOMARCHE_GOMA_001',
+      apiKey: 'om_live_token_goma_77a942cd881f',
+      secretKey: 'om_sec_goma_88201',
+      webhookUrl: 'https://api.gomarche.cd/v1/webhooks/orange-money',
+      enabled: true,
+      sandboxMode: false,
+      phonePrefix: '084, 085, 089',
+    },
+    mpesa: {
+      merchantId: 'VODA_MPESA_GOMA_883011',
+      apiKey: 'mpesa_app_key_goma_38a9bc71',
+      passKey: 'mpesa_passkey_goma_b3c8f12a884',
+      webhookUrl: 'https://api.gomarche.cd/v1/webhooks/vodacom-mpesa',
+      enabled: true,
+      sandboxMode: false,
+      phonePrefix: '081, 082, 083',
+    },
+    afrimoney: {
+      merchantId: 'AFRIMONEY_GOMARCHE_GOMA',
+      apiKey: 'afri_key_goma_9921_cd',
+      secretKey: 'afri_secret_goma_449210',
+      webhookUrl: 'https://api.gomarche.cd/v1/webhooks/afrimoney',
+      enabled: true,
+      sandboxMode: false,
+      phonePrefix: '090, 091',
+    },
   },
-  codEnabled: true,
-  paymentTimeoutMinutes: 60,
-  maxActiveDeliveriesPerDriver: 3,
-  networkIcons: { airtel: true, orange: true, mpesa: true, afrimoney: true },
+  networkIcons: {
+    airtel: true,
+    orange: true,
+    mpesa: true,
+    afrimoney: true,
+  },
+  adminPassword: 'admin',
+  googleClientId: '',
+  ...(persistedSiteConfig && typeof persistedSiteConfig === 'object' ? (persistedSiteConfig as Partial<SiteConfig>) : {}),
 };
