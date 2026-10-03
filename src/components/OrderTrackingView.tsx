@@ -1,355 +1,347 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import {
   Package,
   CheckCircle2,
   Clock,
   Truck,
-  MapPin,
   ArrowLeft,
-  Download,
   Phone,
-  Store,
-  CreditCard,
   Navigation,
   FileText,
-  Activity,
   XCircle,
-  AlertCircle,
   ShieldCheck,
+  User as UserIcon,
+  Banknote,
+  Store,
+  Loader2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Order } from '../types';
-import { PaymentMethodBadge } from './MobileMoneyLogos';
-import { GomaDeliveryMap } from './GomaDeliveryMap';
+import { Order, OrderStatus } from '../types';
+import { GOMA_QUARTIERS } from '../data/mockData';
+import { errorMessage } from '../services/api';
+import { cashDue, etaMinutes, formatDateTime, formatTime, isActiveOrder, STATUS_LABELS, STATUS_STYLES } from '../utils/orders';
 import { VirtualReceipt } from './VirtualReceipt';
+import { PaymentInstructions } from './PaymentInstructions';
+import { OrderChat } from './OrderChat';
 
-export const OrderTrackingView: React.FC = () => {
-  const {
-    orders,
-    selectedOrder,
-    setSelectedOrder,
-    setActiveView,
-    formatPrice,
-    currency,
-    userActivities,
-    cancelOrder,
-  } = useApp();
+const LiveMap = React.lazy(() => import('./LiveMap'));
 
-  const [activeTab, setActiveTab] = useState<'current' | 'history' | 'activity'>('current');
-  const [detailSubView, setDetailSubView] = useState<'map' | 'receipt'>('map');
+const STEPS: { status: OrderStatus; label: string }[] = [
+  { status: 'awaiting_payment', label: 'Paiement' },
+  { status: 'confirmed', label: 'Confirmée' },
+  { status: 'preparing', label: 'Préparation' },
+  { status: 'ready', label: 'Prête' },
+  { status: 'in_delivery', label: 'En route' },
+  { status: 'delivered', label: 'Livrée' },
+];
 
-  const currentOrders = orders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled');
-  const pastOrders = orders.filter((o) => o.status === 'delivered' || o.status === 'cancelled');
+const Progress: React.FC<{ order: Order }> = ({ order }) => {
+  const steps = order.deliveryMode === 'drive' ? STEPS.filter((s) => s.status !== 'in_delivery') : STEPS;
+  const current = steps.findIndex((s) => s.status === order.status);
+  return (
+    <ol className="flex items-center gap-1">
+      {steps.map((s, i) => (
+        <li key={s.status} className="flex-1 min-w-0">
+          <div className={`h-1.5 rounded-full ${i <= current ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+          <span className={`block mt-1 text-[10px] font-bold truncate ${i === current ? 'text-gray-900' : 'text-gray-400'}`}>
+            {s.status === 'delivered' && order.deliveryMode === 'drive' ? 'Retirée' : s.label}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+};
 
-  // If viewing a single order detail
-  if (selectedOrder) {
-    const isWithin24Hours = Date.now() < selectedOrder.cancellationDeadlineTimestamp;
-    const canCancel =
-      selectedOrder.status !== 'delivered' &&
-      selectedOrder.status !== 'cancelled' &&
-      isWithin24Hours;
+const OrderDetail: React.FC<{ order: Order }> = ({ order }) => {
+  const { setSelectedOrder, orderAction, siteConfig, formatPrice, notify } = useApp();
+  const [subView, setSubView] = useState<'tracking' | 'receipt'>('tracking');
+  const [cancelling, setCancelling] = useState(false);
 
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setSelectedOrder(null)}
-            className="text-xs font-bold text-gray-600 hover:text-gray-900 flex items-center gap-1.5"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Retour à mes commandes</span>
-          </button>
+  const canCancel = order.status === 'awaiting_payment' || order.status === 'confirmed';
+  const cash = cashDue(order);
+  const destination = order.customer.coordinates;
+  const showMap = order.deliveryMode === 'delivery' && isActiveOrder(order) && (destination || order.driverLocation);
 
-          {/* Sub-view toggle between GPS Map and Virtual Receipt */}
-          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-2xl border border-gray-200">
+  const cancel = async () => {
+    if (!confirm('Annuler cette commande ? Un paiement déjà validé vous sera remboursé par la caisse.')) return;
+    setCancelling(true);
+    try {
+      await orderAction(order.id, 'cancel');
+      notify('Commande annulée.');
+    } catch (e) {
+      notify(errorMessage(e), 'error');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button type="button" onClick={() => setSelectedOrder(null)} className="text-xs font-bold text-gray-600 hover:text-gray-900 flex items-center gap-1.5">
+          <ArrowLeft className="w-4 h-4" />
+          <span>Mes commandes</span>
+        </button>
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-2xl border border-gray-200">
+          {(['tracking', 'receipt'] as const).map((v) => (
             <button
+              key={v}
               type="button"
-              onClick={() => setDetailSubView('map')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                detailSubView === 'map'
-                  ? 'bg-gray-900 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              onClick={() => setSubView(v)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${subView === v ? 'bg-gray-900 text-white' : 'text-gray-600'}`}
             >
-              <Navigation className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Tracé Map & GPS</span>
+              {v === 'tracking' ? <Navigation className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+              <span>{v === 'tracking' ? 'Suivi' : 'Reçu'}</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setDetailSubView('receipt')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                detailSubView === 'receipt'
-                  ? 'bg-gray-900 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5 text-amber-400" />
-              <span>Reçu Virtuel & Code</span>
-            </button>
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Display selected view */}
-        {detailSubView === 'receipt' ? (
-          <VirtualReceipt order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-        ) : (
-          <div className="space-y-6">
-            {/* Interactive GPS Map of Goma */}
-            <GomaDeliveryMap order={selectedOrder} />
-
-            {/* Secret Confirmation Code Banner */}
-            <div className="bg-amber-50 rounded-3xl p-5 border-2 border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+      {subView === 'receipt' ? (
+        <VirtualReceipt order={order} />
+      ) : (
+        <div className="space-y-5">
+          <div className="bg-white rounded-3xl p-5 border border-gray-200 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 block">
-                  Code Secret de Remise (À fournir au livreur à Goma) :
-                </span>
-                <span className="font-mono text-2xl font-black text-gray-900">
-                  {selectedOrder.confirmationCode}
-                </span>
-                <p className="text-xs text-gray-600 mt-1">
-                  Ce code confirme la réception définitive de vos courses.
+                <span className="font-mono font-black text-lg text-gray-900">{order.orderNumber}</span>
+                <p className="text-xs text-gray-500">
+                  {order.deliveryMode === 'delivery' ? 'Livraison' : 'Retrait'} : {order.deliverySlotName}
                 </p>
               </div>
+              <span className={`text-xs font-black px-3 py-1 rounded-full ${STATUS_STYLES[order.status]}`}>
+                {order.status === 'ready' && order.deliveryMode === 'drive' ? 'Prête à retirer au magasin' : STATUS_LABELS[order.status]}
+              </span>
+            </div>
+            {order.status === 'cancelled' ? (
+              <p className="text-xs text-red-700 font-bold">Motif : {order.cancelReason}</p>
+            ) : (
+              <Progress order={order} />
+            )}
+          </div>
 
-              {canCancel && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm("Confirmez-vous l'annulation de cette commande (remboursement immédiat sous 24h) ?")) {
-                      cancelOrder(selectedOrder.id);
-                    }
-                  }}
-                  className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs rounded-xl flex items-center gap-1.5 shrink-0"
-                >
-                  <XCircle className="w-4 h-4" />
-                  <span>Annuler (Valable 24h)</span>
-                </button>
+          <PaymentInstructions order={order} />
+
+          {showMap && (
+            <div className="space-y-2">
+              <Suspense fallback={<div className="h-72 rounded-3xl bg-gray-100 animate-pulse" />}>
+                <LiveMap store={siteConfig.storeLocation} destination={destination} driver={order.driverLocation} />
+              </Suspense>
+              <p className="text-xs text-gray-600 px-1">
+                {order.status !== 'in_delivery'
+                  ? 'La position du livreur apparaîtra ici dès son départ du magasin.'
+                  : order.driverLocation
+                  ? `Position du livreur mise à jour à ${formatTime(order.driverLocation.at)}${
+                      destination ? ` • arrivée estimée dans ~${etaMinutes(order.driverLocation, destination)} min` : ''
+                    }`
+                  : 'Le livreur est en route ; sa position GPS n’est pas disponible pour le moment. Vous pouvez l’appeler.'}
+              </p>
+            </div>
+          )}
+
+          {order.deliveryDriverName && isActiveOrder(order) && (
+            <div className="bg-white rounded-3xl p-5 border border-gray-200 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-gray-400">Votre livreur</span>
+                  <p className="text-sm font-black text-gray-900">{order.deliveryDriverName}</p>
+                </div>
+              </div>
+              {order.deliveryDriverPhone && (
+                <a href={`tel:${order.deliveryDriverPhone}`} className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  <span>Appeler {order.deliveryDriverPhone}</span>
+                </a>
               )}
             </div>
-          </div>
-        )}
+          )}
+
+          {order.status === 'ready' && order.deliveryMode === 'drive' && (
+            <div className="bg-violet-50 border border-violet-200 rounded-3xl p-5 flex items-start gap-3 text-sm text-gray-800">
+              <Store className="w-5 h-5 text-violet-600 shrink-0 mt-0.5" />
+              <span>
+                Votre commande vous attend au magasin : <strong>{siteConfig.storeAddress}</strong>. Donnez votre code au comptoir.
+              </span>
+            </div>
+          )}
+
+          {isActiveOrder(order) && order.confirmationCode && (
+            <div className="bg-amber-50 rounded-3xl p-5 border-2 border-amber-200 flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Code de remise
+                </span>
+                <span className="font-mono text-3xl font-black text-gray-900 tracking-widest">{order.confirmationCode}</span>
+                <p className="text-xs text-gray-600 mt-1">
+                  À donner {order.deliveryMode === 'delivery' ? 'au livreur' : 'au comptoir'} uniquement quand vous avez vos courses en main.
+                </p>
+              </div>
+              {cash && (
+                <div className="text-right">
+                  <span className="text-[10px] font-black uppercase text-gray-500 flex items-center gap-1 justify-end">
+                    <Banknote className="w-3.5 h-3.5" /> À payer en espèces à la remise
+                  </span>
+                  <span className="text-xl font-black text-gray-900">{formatPrice(cash.amountUsd, 'USD')}</span>
+                  <span className="block text-xs text-gray-500">ou {cash.amountCdf.toLocaleString('fr-FR')} FC</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(order.deliveryDriverId || order.preparerId) && <OrderChat order={order} />}
+
+          {canCancel && (
+            <button
+              type="button"
+              onClick={cancel}
+              disabled={cancelling}
+              className="px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-xl flex items-center gap-1.5 disabled:opacity-60"
+            >
+              {cancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+              <span>Annuler la commande</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ProfileForm: React.FC = () => {
+  const { currentUser, updateProfile, notify } = useApp();
+  const [name, setName] = useState(currentUser?.name || '');
+  const [phone, setPhone] = useState(currentUser?.phone || '');
+  const [address, setAddress] = useState(currentUser?.address || '');
+  const [commune, setCommune] = useState(currentUser?.commune || GOMA_QUARTIERS[0]);
+  const [busy, setBusy] = useState(false);
+  const inputClass = 'w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:border-[#E2001A]';
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    const res = await updateProfile({ name, phone: phone || undefined, address, commune });
+    setBusy(false);
+    notify(res.success ? 'Profil enregistré.' : res.message || 'Erreur', res.success ? 'success' : 'error');
+  };
+
+  return (
+    <form onSubmit={submit} className="bg-white rounded-3xl p-6 border border-gray-200 space-y-4 max-w-xl">
+      <div>
+        <h3 className="text-sm font-black text-gray-900">Mon profil</h3>
+        <p className="text-xs text-gray-500">{currentUser?.email} • {currentUser?.loyaltyPoints} points de fidélité</p>
       </div>
-    );
-  }
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="pf-name" className="block text-xs font-bold text-gray-700 mb-1">Nom</label>
+          <input id="pf-name" className={inputClass} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+        </div>
+        <div>
+          <label htmlFor="pf-phone" className="block text-xs font-bold text-gray-700 mb-1">Téléphone</label>
+          <input id="pf-phone" className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" placeholder="+243 8XX XXX XXX" />
+        </div>
+        <div>
+          <label htmlFor="pf-commune" className="block text-xs font-bold text-gray-700 mb-1">Quartier</label>
+          <select id="pf-commune" className={`${inputClass} bg-white`} value={commune} onChange={(e) => setCommune(e.target.value)}>
+            {GOMA_QUARTIERS.map((q) => (
+              <option key={q} value={q}>{q}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="pf-address" className="block text-xs font-bold text-gray-700 mb-1">Adresse</label>
+          <input id="pf-address" className={inputClass} value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" />
+        </div>
+      </div>
+      <button type="submit" disabled={busy} className="px-5 py-2.5 rounded-xl bg-gray-900 text-white text-xs font-bold disabled:opacity-60">
+        Enregistrer
+      </button>
+    </form>
+  );
+};
+
+export const OrderTrackingView: React.FC = () => {
+  const { orders, selectedOrder, setSelectedOrder, setActiveView, formatPrice, currentUser } = useApp();
+  const [activeTab, setActiveTab] = useState<'current' | 'history' | 'profile'>('current');
+
+  if (selectedOrder && selectedOrder.userId === currentUser?.id) return <OrderDetail order={selectedOrder} />;
+
+  const currentOrders = orders.filter(isActiveOrder);
+  const pastOrders = orders.filter((o) => !isActiveOrder(o));
+  const list = activeTab === 'current' ? currentOrders : pastOrders;
+
+  const tabs = [
+    { id: 'current' as const, label: `En cours (${currentOrders.length})`, icon: Clock },
+    { id: 'history' as const, label: `Historique (${pastOrders.length})`, icon: Package },
+    { id: 'profile' as const, label: 'Mon profil', icon: UserIcon },
+  ];
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-gray-900">Espace Suivi & Activités Client</h2>
-          <p className="text-xs text-gray-500">
-            Suivi des livraisons en cours à Goma, reçus virtuels et journal de votre compte
-          </p>
+          <h2 className="text-2xl font-black text-gray-900">Mes commandes</h2>
+          <p className="text-xs text-gray-500">Suivi en direct, paiement, messages avec votre livreur et reçus</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setActiveView('home')}
-          className="text-xs font-bold text-[#E2001A] hover:underline self-start sm:self-auto"
-        >
+        <button type="button" onClick={() => setActiveView('home')} className="text-xs font-bold text-[#E2001A] hover:underline self-start sm:self-auto">
           Retour à la boutique
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
-        <button
-          type="button"
-          onClick={() => setActiveTab('current')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors ${
-            activeTab === 'current'
-              ? 'bg-gray-900 text-white'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <Clock className="w-3.5 h-3.5" />
-          <span>Commandes en cours ({currentOrders.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('history')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors ${
-            activeTab === 'history'
-              ? 'bg-gray-900 text-white'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <Package className="w-3.5 h-3.5" />
-          <span>Historique Passé ({pastOrders.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('activity')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors ${
-            activeTab === 'activity'
-              ? 'bg-gray-900 text-white'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <Activity className="w-3.5 h-3.5" />
-          <span>Journal d'activités</span>
-        </button>
+      <div className="flex items-center gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setActiveTab(t.id)}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap ${activeTab === t.id ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+          >
+            <t.icon className="w-3.5 h-3.5" />
+            <span>{t.label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Tab 1: Current Orders */}
-      {activeTab === 'current' && (
-        <div className="space-y-4">
-          {currentOrders.length === 0 ? (
-            <div className="bg-white rounded-3xl p-10 text-center border border-gray-200">
-              <Package className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-              <h4 className="text-base font-bold text-gray-800">Aucune commande en cours</h4>
-              <p className="text-xs text-gray-500 mt-1">
-                Faites vos courses pour suivre votre coursier en direct sur la carte de Goma !
-              </p>
-            </div>
-          ) : (
-            currentOrders.map((ord) => (
-              <div
-                key={ord.id}
-                className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm space-y-4"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-gray-100 gap-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-base text-gray-900">
-                        {ord.orderNumber}
-                      </span>
-                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                        Payé ({ord.paymentMethod.replace('_', ' ')})
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Destination : Quartier {ord.customer.quartierGoma} • Créneau : {ord.deliverySlotName}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-blue-700 bg-blue-50 px-3 py-1 rounded-full animate-pulse">
-                      {ord.status === 'in_delivery' ? '🛵 En cours de livraison' : '🏬 En préparation magasin'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Secret Code preview */}
-                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-[#E2001A]" />
-                    <span className="text-xs font-bold text-gray-900">
-                      Code Secret à donner au livreur :
-                    </span>
-                  </div>
-                  <span className="font-mono text-base font-black text-amber-900 bg-white px-3 py-1 rounded-xl border border-amber-300">
-                    {ord.confirmationCode}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-sm font-black text-gray-900">
-                    Total : {formatPrice(ord.totalUsd)}
-                  </span>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedOrder(ord);
-                        setDetailSubView('map');
-                      }}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm"
-                    >
-                      <Navigation className="w-3.5 h-3.5" />
-                      <span>Tracé GPS en direct</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedOrder(ord);
-                        setDetailSubView('receipt');
-                      }}
-                      className="px-4 py-2 bg-gray-900 hover:bg-black text-white font-bold text-xs rounded-xl flex items-center gap-1.5"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>Reçu Virtuel</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
+      {activeTab === 'profile' ? (
+        <ProfileForm />
+      ) : list.length === 0 ? (
+        <div className="bg-white rounded-3xl p-10 text-center border border-gray-200">
+          <Package className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+          <h4 className="text-base font-bold text-gray-800">
+            {activeTab === 'current' ? 'Aucune commande en cours' : 'Aucune commande passée'}
+          </h4>
         </div>
-      )}
-
-      {/* Tab 2: Past Orders History */}
-      {activeTab === 'history' && (
+      ) : (
         <div className="space-y-3">
-          {pastOrders.length === 0 ? (
-            <div className="bg-white rounded-3xl p-10 text-center border border-gray-200">
-              <Package className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-              <h4 className="text-base font-bold text-gray-800">Aucune commande archivée</h4>
-            </div>
-          ) : (
-            pastOrders.map((ord) => (
-              <div
-                key={ord.id}
-                onClick={() => {
-                  setSelectedOrder(ord);
-                  setDetailSubView('receipt');
-                }}
-                className="bg-white rounded-2xl p-4 border border-gray-200 hover:border-gray-300 transition-all cursor-pointer flex items-center justify-between"
-              >
+          {list.map((ord) => (
+            <button
+              key={ord.id}
+              type="button"
+              onClick={() => setSelectedOrder(ord)}
+              className="w-full text-left bg-white rounded-3xl p-5 border border-gray-200 hover:border-gray-300 shadow-sm space-y-3"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-sm text-gray-900">{ord.orderNumber}</span>
-                    <span className="text-xs text-gray-400">• {ord.date}</span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        ord.status === 'delivered'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {ord.status === 'delivered' ? 'Livré et Confirmé par Code' : 'Annulé'}
-                    </span>
-                  </div>
+                  <span className="font-mono font-bold text-base text-gray-900">{ord.orderNumber}</span>
+                  <span className="text-xs text-gray-400"> • {formatDateTime(ord.createdAt)}</span>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Quartier {ord.customer.quartierGoma} • {ord.items.length} articles
+                    {ord.items.reduce((n, i) => n + i.quantity, 0)} article(s) • {ord.deliverySlotName}
                   </p>
                 </div>
-
-                <div className="text-right">
-                  <span className="font-black text-sm text-gray-900 block">{formatPrice(ord.totalUsd)}</span>
-                  <span className="text-[11px] text-blue-600 font-bold hover:underline">
-                    Voir le reçu
-                  </span>
-                </div>
+                <span className={`text-xs font-black px-3 py-1 rounded-full ${STATUS_STYLES[ord.status]}`}>{STATUS_LABELS[ord.status]}</span>
               </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Tab 3: Activity Log */}
-      {activeTab === 'activity' && (
-        <div className="bg-white rounded-3xl p-6 border border-gray-200 space-y-4">
-          <h3 className="text-sm font-black text-gray-900">Journal d'activités récent</h3>
-          <div className="divide-y divide-gray-100 text-xs">
-            {userActivities.map((act) => (
-              <div key={act.id} className="py-3 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-red-50 text-[#E2001A] flex items-center justify-center shrink-0">
-                  <Activity className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900">{act.title}</p>
-                  <p className="text-gray-500 text-xs mt-0.5">{act.description}</p>
-                  <span className="text-[10px] text-gray-400 block mt-1">{act.timestamp}</span>
-                </div>
+              {isActiveOrder(ord) && <Progress order={ord} />}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-black text-gray-900">{formatPrice(ord.totalUsd)}</span>
+                <span className="text-xs font-bold text-blue-600 flex items-center gap-1">
+                  {ord.status === 'awaiting_payment' ? 'Payer maintenant' : ord.status === 'delivered' ? 'Voir le reçu' : 'Suivre'}
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </span>
               </div>
-            ))}
-          </div>
+            </button>
+          ))}
         </div>
       )}
     </div>

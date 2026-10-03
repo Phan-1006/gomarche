@@ -259,7 +259,7 @@ export const CartDrawer: React.FC = () => {
               className="w-full py-3.5 px-4 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-transform transform active:scale-95"
               style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
             >
-              <span>Commander via Mobile Money</span>
+              <span>Valider ma commande</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

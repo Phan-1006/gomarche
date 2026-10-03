@@ -1,4 +1,5 @@
 import React from 'react';
+import { METHOD_TO_GATEWAY, PaymentGatewayConfig, PaymentMethod } from '../types';
 
 interface LogoProps {
   className?: string;
@@ -214,4 +215,17 @@ export const PaymentMethodBadge: React.FC<{
     default:
       return null;
   }
+};
+
+/** Logo de l'opérateur correspondant à un moyen de paiement, avec le logo personnalisé de l'admin s'il existe. */
+export const MethodLogo: React.FC<{ method: PaymentMethod; gateways: PaymentGatewayConfig; size?: 'sm' | 'md' | 'lg' }> = ({
+  method,
+  gateways,
+  size = 'sm',
+}) => {
+  const customLogoUrl = gateways[METHOD_TO_GATEWAY[method]]?.customLogoUrl;
+  if (method === 'airtel_money') return <AirtelMoneyLogo size={size} customLogoUrl={customLogoUrl} />;
+  if (method === 'orange_money') return <OrangeMoneyLogo size={size} customLogoUrl={customLogoUrl} />;
+  if (method === 'mpesa') return <MpesaLogo size={size} customLogoUrl={customLogoUrl} />;
+  return <AfriMoneyLogo size={size} customLogoUrl={customLogoUrl} />;
 };

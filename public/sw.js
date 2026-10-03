@@ -1,44 +1,26 @@
-// Service Worker for Gomarché PWA - Network First Strategy
-const CACHE_NAME = 'gomarche-cache-v3';
+// Service worker de Gomarché : rend l'application installable sans jamais servir de contenu périmé.
+// Rien n'est mis en cache ici ; l'API et les pages passent toujours par le réseau.
+const OFFLINE_HTML =
+  '<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+  '<title>Hors connexion</title><body style="font-family:system-ui;display:grid;place-items:center;min-height:100vh;margin:0;background:#F9FAFB">' +
+  '<div style="text-align:center;padding:2rem"><h1 style="font-size:1.25rem">Vous êtes hors connexion</h1>' +
+  '<p style="color:#4B5563">Vérifiez votre connexion Internet puis réessayez.</p>' +
+  '<button onclick="location.reload()" style="padding:.75rem 1.5rem;border:0;border-radius:.75rem;background:#E2001A;color:#fff;font-weight:700">Réessayer</button></div></body></html>';
 
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
+self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('Purging outdated service worker cache:', key);
-            return caches.delete(key);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
   );
 });
 
-// Network-first: Always try network to get fresh code; fallback to cache only if totally offline
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  const url = new URL(event.request.url);
-
-  // For HTML navigation requests, NEVER serve stale index.html from cache
-  if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
-    );
-    return;
-  }
-
-  // For other requests, network first
+  if (event.request.mode !== 'navigate') return;
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    fetch(event.request).catch(() => new Response(OFFLINE_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } }))
   );
 });
