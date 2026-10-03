@@ -188,6 +188,9 @@ async function startServer() {
 }
 
 startServer().catch((err) => {
-  console.error('Échec du démarrage :', err);
+  // Message seul : l'objet d'erreur complet peut embarquer des détails de configuration.
+  console.error('ÉCHEC DU DÉMARRAGE :', err?.message || err);
+  if (err?.code === 5) console.error('→ La base Firestore est introuvable : créez-la dans la console Firebase (Firestore Database).');
+  if (err?.code === 7) console.error('→ Accès refusé : la clé de compte de service n’appartient pas à ce projet Firebase.');
   process.exit(1);
 });

@@ -80,9 +80,20 @@ function canonical(value: unknown): string {
 }
 
 function parseServiceAccount(raw: string) {
-  const text = raw.trim().startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf-8');
-  const json = JSON.parse(text);
-  if (!json.project_id || !json.client_email || !json.private_key) throw new Error('clé de compte de service incomplète');
+  // Les erreurs ne reprennent jamais le contenu reçu : il s'agit d'une clé secrète, et les
+  // journaux de l'hébergeur ne doivent pas en contenir le moindre extrait.
+  const fail = (why: string) =>
+    new Error(`FIREBASE_SERVICE_ACCOUNT invalide : ${why}. Collez le contenu complet du fichier JSON de clé, de la première accolade à la dernière.`);
+  let json: any;
+  try {
+    const text = raw.trim().startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf-8');
+    json = JSON.parse(text);
+  } catch {
+    throw fail('ce n’est pas du JSON lisible');
+  }
+  if (json?.type !== 'service_account' || !json.project_id || !json.client_email || !json.private_key) {
+    throw fail('ce n’est pas une clé de compte de service (champs manquants)');
+  }
   return json;
 }
 
