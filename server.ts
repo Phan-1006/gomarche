@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import express from 'express';
 import helmet from 'helmet';
-import { db, ROOT_DIR, UPLOADS_DIR } from './server/db';
+import { db, initDb, ROOT_DIR, store, UPLOADS_DIR } from './server/db';
 import { apiLimiter, csrfGuard, IS_PROD, loadSession, safeEqual } from './server/security';
 import { authRouter, bootstrapAdmin } from './server/auth';
 import { catalogRouter } from './server/catalog';
@@ -47,18 +47,24 @@ app.use(
 );
 
 // Fichiers envoyés : servis comme simples images, jamais interprétés comme page.
-app.use(
-  '/uploads',
-  express.static(UPLOADS_DIR, {
-    index: false,
-    maxAge: '30d',
-    immutable: true,
-    setHeaders: (res) => {
-      res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-    },
-  })
-);
+const uploadHeaders = (res: express.Response) => {
+  res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+};
+app.get('/uploads/:name', async (req, res, next) => {
+  if (store.kind === 'file') return next();
+  if (!/^[a-f0-9]{24}\.(jpg|png|webp)$/.test(req.params.name)) return res.status(404).end();
+  try {
+    const file = await store.readUpload(req.params.name);
+    if (!file) return res.status(404).end();
+    uploadHeaders(res);
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    res.type(file.contentType).send(file.data);
+  } catch (e) {
+    next(e);
+  }
+});
+app.use('/uploads', express.static(UPLOADS_DIR, { index: false, maxAge: '30d', immutable: true, setHeaders: uploadHeaders }));
 
 // Manifeste PWA généré depuis la configuration : le nom et l'icône choisis par l'admin
 // s'appliquent à tous les appareils, sans redéploiement.
@@ -145,6 +151,7 @@ app.use((err: any, _req: express.Request, res: express.Response, next: express.N
 });
 
 async function startServer() {
+  await initDb();
   bootstrapAdmin();
   sweepUnpaidOrders();
   setInterval(sweepUnpaidOrders, 60_000).unref();

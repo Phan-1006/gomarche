@@ -1,29 +1,26 @@
-# Déploiement Render : un serveur Node permanent + un disque persistant pour les données.
+# Déploiement Render (offre gratuite) : le serveur tourne ici, les données vivent dans Firestore.
 # Sur render.com : New → Blueprint → choisir ce dépôt et la branche.
 services:
   - type: web
     name: gomarche
     runtime: node
-    plan: starter # le disque persistant n'existe pas sur l'offre gratuite
+    plan: free # s'endort après 15 min sans visite ; passer à "starter" supprime l'attente au réveil
     region: frankfurt
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/delivery-options
-    numInstances: 1 # la base est un fichier : une seule instance
-    disk:
-      name: gomarche-data
-      mountPath: /var/data
-      sizeGB: 1
+    numInstances: 1 # une seule instance : l'état de travail est en mémoire
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DATA_DIR
-        value: /var/data
       - key: TRUST_PROXY
         value: "1"
       - key: ADMIN_EMAILS
         value: mughenyakavale@gmail.com
       # Valeurs secrètes : Render les demande à la création, elles ne sont jamais dans Git.
+      # Contenu complet du fichier JSON de clé de compte de service Firebase.
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
       - key: ADMIN_PASSWORD
         sync: false
       - key: GEMINI_API_KEY

@@ -57,15 +57,30 @@ X-Gomarche-Signature: <HMAC-SHA256 hexadécimal du corps brut, clé PAYMENT_WEBH
 Le montant doit correspondre exactement au paiement attendu (USD ou CDF). Le format de
 notification propre à chaque agrégateur doit être adapté dans `server.ts`.
 
-## Déploiement : points à respecter
+## Où sont les données
 
-1. **Disque persistant** pour `DATA_DIR` (base `db.json` + images). Sur un disque éphémère, les
-   données et le logo disparaissent à chaque redémarrage. Sauvegardez ce dossier régulièrement.
-2. **Une seule instance** du serveur (la base est un fichier, les verrous sont en mémoire).
-3. **HTTPS** obligatoire (cookie de session sécurisé, géolocalisation du livreur).
-4. Dans la console Firebase : activer le fournisseur **Google** et ajouter votre domaine aux
-   « Authorized domains ».
-5. Renseigner les numéros marchands dans Administration → Paiements.
+| Mode | Activé par | Usage |
+| --- | --- | --- |
+| Firestore | `FIREBASE_SERVICE_ACCOUNT` | Hébergement sans disque persistant (Render gratuit...) |
+| Fichier `DATA_DIR/db.json` | par défaut | Développement, ou serveur avec disque persistant |
+
+Dans les deux cas le serveur travaille en mémoire et recopie ses changements. Avec Firestore,
+seuls les documents modifiés sont réécrits, et au démarrage seules les commandes des 45 derniers
+jours sont rechargées (les plus anciennes restent archivées dans Firestore).
+
+## Déploiement sur Render (gratuit) + Firestore
+
+1. Console Firebase → Firestore Database : créer la base (mode production).
+2. Console Firebase → Paramètres du projet → Comptes de service → **Générer une nouvelle clé
+   privée**. Ce fichier donne un accès total à la base : ne le commitez jamais, ne le partagez pas.
+3. render.com → New → Blueprint → ce dépôt. Coller le contenu du fichier JSON dans
+   `FIREBASE_SERVICE_ACCOUNT`, choisir un `ADMIN_PASSWORD` (12 caractères minimum).
+4. Console Firebase → Authentication → Settings → Authorized domains : ajouter le domaine Render.
+5. Se connecter en admin, renseigner les numéros marchands (Paiements) et le personnel.
+
+À respecter : **une seule instance** du serveur, et **HTTPS** (fourni par Render) pour le cookie
+de session et la géolocalisation du livreur. Sur l'offre gratuite, le serveur s'endort après
+15 minutes sans visite : le visiteur suivant attend 30 à 60 secondes.
 
 ## Sécurité en place
 

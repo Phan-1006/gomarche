@@ -1,11 +1,10 @@
 import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
-import express, { Router } from 'express';
+import { Router } from 'express';
 import type { Category, GatewayKey, Product, SiteConfig, StaffMember } from '../src/types';
 import { STAFF_ROLES } from '../src/types';
 import { GOMA_BOUNDS } from '../src/data/mockData';
-import { audit, db, findStaff, isAdminEmail, newId, publicUser, save, UPLOADS_DIR } from './db';
+import { audit, db, findStaff, isAdminEmail, newId, publicUser, save, store } from './db';
+import { FIRESTORE_UPLOAD_LIMIT } from './store';
 import { isHHMM, toMinutes } from './schedule';
 import {
   AuthedRequest,
@@ -328,15 +327,23 @@ function sniffImage(buf: Buffer): string | null {
   return null;
 }
 
-catalogRouter.post('/upload', writeLimiter, catalogStaff, express.json({ limit: '8mb' }), (req: AuthedRequest, res) => {
+catalogRouter.post('/upload', writeLimiter, catalogStaff, async (req: AuthedRequest, res) => {
   const match = /^data:image\/[a-z+]+;base64,([A-Za-z0-9+/=]+)$/.exec(String(req.body?.imageBase64 || ''));
   if (!match) return res.status(400).json({ error: 'Image invalide.' });
   const buf = Buffer.from(match[1], 'base64');
   const ext = sniffImage(buf);
   if (!ext) return res.status(400).json({ error: 'Format non pris en charge : utilisez JPG, PNG ou WebP.' });
-  if (buf.length > 5 * 1024 * 1024) return res.status(413).json({ error: 'Image trop lourde (5 Mo maximum).' });
+  const limit = store.kind === 'firestore' ? FIRESTORE_UPLOAD_LIMIT : 5 * 1024 * 1024;
+  if (buf.length > limit) {
+    return res.status(413).json({ error: `Image trop lourde (${Math.round(limit / 1024)} Ko maximum). Réduisez-la ou utilisez un lien.` });
+  }
   const filename = `${crypto.randomBytes(12).toString('hex')}.${ext}`;
-  fs.writeFileSync(path.join(UPLOADS_DIR, filename), buf);
+  try {
+    await store.saveUpload(filename, buf, ext === 'jpg' ? 'image/jpeg' : `image/${ext}`);
+  } catch (e) {
+    console.error('Envoi d’image :', e);
+    return res.status(502).json({ error: 'Enregistrement de l’image impossible pour le moment. Réessayez.' });
+  }
   res.status(201).json({ url: `/uploads/${filename}` });
 });
 

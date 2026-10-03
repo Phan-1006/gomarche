@@ -53,7 +53,8 @@ function readCookie(req: Request, name: string): string | null {
 export function startSession(res: Response, user: DbUser) {
   const token = crypto.randomBytes(32).toString('base64url');
   const now = Date.now();
-  db.sessions = db.sessions.filter((s) => s.expiresAt > now);
+  // Sessions expirées retirées ; au-delà de 3000, les plus anciennes sont fermées.
+  db.sessions = db.sessions.filter((s) => s.expiresAt > now).slice(-2999);
   db.sessions.push({ tokenHash: sha256(token), userId: user.id, expiresAt: now + SESSION_TTL_MS });
   user.lastLoginAt = now;
   save();
