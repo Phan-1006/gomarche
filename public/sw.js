@@ -24,3 +24,40 @@ self.addEventListener('fetch', (event) => {
     fetch(event.request).catch(() => new Response(OFFLINE_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } }))
   );
 });
+
+// Notifications push : nouveau message de la conversation, étape franchie par une commande.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+  const url = data.orderId ? '/?order=' + encodeURIComponent(data.orderId) : '/';
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Nouvelle notification', {
+      body: data.body || '',
+      tag: data.tag,
+      renotify: !!data.tag,
+      icon: data.icon || undefined,
+      data: { url },
+    })
+  );
+});
+
+// Un appui sur la notification ramène l'application au premier plan, sur la commande concernée.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        if (new URL(client.url).origin === self.location.origin) {
+          client.postMessage({ type: 'open-order', url });
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    })
+  );
+});

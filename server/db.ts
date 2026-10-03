@@ -38,6 +38,15 @@ export interface DbUser {
   resetTokenExpiresAt?: number;
 }
 
+// Appareil abonné aux notifications push d'un compte.
+export interface DbPushSub {
+  userId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  createdAt: number;
+}
+
 export interface DbSession {
   tokenHash: string;
   userId: string;
@@ -51,6 +60,7 @@ interface DbShape {
   users: DbUser[];
   staff: StaffMember[];
   sessions: DbSession[];
+  pushSubs: DbPushSub[];
   orders: Order[];
   messages: ChatMessage[];
   audit: AuditEntry[];
@@ -138,6 +148,7 @@ function initialDb(): DbShape {
     users: [],
     staff: [],
     sessions: [],
+    pushSubs: [],
     orders: [],
     messages: [],
     audit: [],
@@ -147,7 +158,7 @@ function initialDb(): DbShape {
 
 // Les listes qui changent peu sont rangées par morceaux (un document ne dépasse pas 1 Mo dans
 // Firestore) ; commandes et conversations ont chacune leur document.
-const CHUNKED = ['categories', 'products', 'users', 'staff', 'sessions', 'audit'] as const;
+const CHUNKED = ['categories', 'products', 'users', 'staff', 'sessions', 'pushSubs', 'audit'] as const;
 const CHUNK_BYTES = 600_000;
 
 function chunk(name: string, items: unknown[], out: Record<string, unknown>) {
@@ -204,6 +215,7 @@ function fromSnapshot(snapshot: Snapshot): DbShape {
     users: list('users'),
     staff: list('staff'),
     sessions: list('sessions'),
+    pushSubs: list('pushSubs'),
     audit: list('audit'),
     orders: (Object.values(snapshot.orders) as Order[]).sort((x, y) => y.createdAt - x.createdAt),
     messages: (Object.values(snapshot.chats) as { messages: ChatMessage[] }[]).flatMap((c) => c.messages || []).sort((x, y) => x.at - y.at),

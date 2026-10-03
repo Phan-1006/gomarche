@@ -27,6 +27,7 @@ import { OrderTrackingView } from './components/OrderTrackingView';
 import { PromotionsView } from './components/PromotionsView';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { EmailVerifyBanner } from './components/EmailVerifyBanner';
+import { NotificationPrompt } from './components/NotificationPrompt';
 import { Footer } from './components/Footer';
 
 const MobileBottomNav: React.FC = () => {
@@ -43,6 +44,7 @@ const MobileBottomNav: React.FC = () => {
   } = useApp();
 
   const pendingOrdersCount = orders.filter(isActiveOrder).length;
+  const unreadMessages = orders.reduce((n, o) => n + (o.unreadHint || 0), 0);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 py-2 px-3 flex items-center justify-around md:hidden shadow-2xl backdrop-blur-md bg-white/95">
@@ -107,8 +109,14 @@ const MobileBottomNav: React.FC = () => {
       >
         <div className="relative">
           <Clock className="w-5 h-5" />
-          {pendingOrdersCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white animate-pulse" />
+          {unreadMessages > 0 ? (
+            <span className="absolute -top-2 -right-2.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border border-white">
+              {unreadMessages > 9 ? '9+' : unreadMessages}
+            </span>
+          ) : (
+            pendingOrdersCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white animate-pulse" />
+            )
           )}
         </div>
         <span className="text-[10px] font-bold">Mes Courses</span>
@@ -152,6 +160,9 @@ const GomarcheContent: React.FC = () => {
 
       {/* Rappel de confirmation d'adresse e-mail */}
       <EmailVerifyBanner />
+
+      {/* Invitation à activer les notifications (commande en cours, personnel) */}
+      <NotificationPrompt />
 
       {/* Modern Supermarket Header */}
       <Header />

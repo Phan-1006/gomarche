@@ -38,6 +38,11 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false
+      # Paire de clés des notifications push : npx web-push generate-vapid-keys
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: TURNSTILE_SITE_KEY

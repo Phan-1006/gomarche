@@ -11,6 +11,7 @@ import {
   PaymentGatewayItemConfig,
 } from '../types';
 import { INITIAL_SITE_CONFIG } from '../data/mockData';
+import { disablePush } from '../services/push';
 import { api, ApiError, errorMessage } from '../services/api';
 import { googleIdToken } from '../services/firebaseAuth';
 
@@ -180,6 +181,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [resetToken, setResetToken] = useState<string | null>(null);
+  // Commande à ouvrir après un appui sur une notification.
+  const [orderLink, setOrderLink] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const notify = useCallback((message: string, kind: 'success' | 'error' = 'success') => {
@@ -433,11 +436,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const params = new URLSearchParams(window.location.search);
     const verify = params.get('verify');
     const reset = params.get('reset');
-    if (!verify && !reset) return;
+    const order = params.get('order');
+    if (!verify && !reset && !order) return;
     if (mailLinkHandled) return;
     mailLinkHandled = true;
+    if (order) setOrderLink(order);
     params.delete('verify');
     params.delete('reset');
+    params.delete('order');
     const query = params.toString();
     window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
     if (reset) {
@@ -453,7 +459,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
+  // Application déjà ouverte : le service worker transmet la commande de la notification touchée.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type !== 'open-order') return;
+      const id = new URL(event.data.url, window.location.origin).searchParams.get('order');
+      if (id) setOrderLink(id);
+    };
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+  }, []);
+
+  useEffect(() => {
+    if (!orderLink || !currentUser) return;
+    setSelectedOrderId(orderLink);
+    setActiveViewRaw(currentUser.role === 'customer' ? 'orders' : homeViewFor(currentUser));
+    setOrderLink(null);
+  }, [orderLink, currentUser]);
+
   const logout = async () => {
+    // Cet appareil ne doit plus recevoir les notifications du compte qui se déconnecte.
+    await disablePush();
     await api('POST', '/auth/logout').catch(() => {});
     setCurrentUser(null);
     setSelectedOrderId(null);

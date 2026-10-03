@@ -10,6 +10,7 @@ import { authRouter, bootstrapAdmin } from './server/auth';
 import { catalogRouter } from './server/catalog';
 import { applyWebhookPayment, ordersRouter, sweepUnpaidOrders } from './server/orders';
 import { lensRouter } from './server/lens';
+import { pushRouter } from './server/push';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -143,6 +144,7 @@ api.use(authRouter);
 api.use(catalogRouter);
 api.use(ordersRouter);
 api.use(lensRouter);
+api.use(pushRouter);
 api.use((_req, res) => res.status(404).json({ error: 'Ressource inconnue.' }));
 app.use('/api', api);
 

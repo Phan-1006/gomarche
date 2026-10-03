@@ -27,6 +27,7 @@ import {
   str,
   writeLimiter,
 } from './security';
+import { pushToRole, pushToUsers } from './push';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const ACTIVE: OrderStatus[] = ['awaiting_payment', 'confirmed', 'preparing', 'ready', 'in_delivery'];
@@ -38,16 +39,66 @@ const driverLocations = new Map<string, { lat: number; lng: number; at: number; 
 const inGoma = (lat: number, lng: number) =>
   lat >= GOMA_BOUNDS.minLat && lat <= GOMA_BOUNDS.maxLat && lng >= GOMA_BOUNDS.minLng && lng <= GOMA_BOUNDS.maxLng;
 
+const STATUS_RANK: Record<OrderStatus, number> = {
+  awaiting_payment: 0,
+  confirmed: 1,
+  preparing: 2,
+  ready: 3,
+  in_delivery: 4,
+  delivered: 5,
+  cancelled: 6,
+};
+
+// Ce que le client reçoit sur son téléphone à chaque étape franchie.
+function customerNotice(order: Order, status: OrderStatus): string | null {
+  switch (status) {
+    case 'confirmed':
+      return 'Paiement validé : votre commande est confirmée.';
+    case 'preparing':
+      return 'Votre commande est en cours de préparation.';
+    case 'ready':
+      return order.deliveryMode === 'delivery' ? 'Votre commande est prête, un livreur va la prendre en charge.' : 'Votre commande est prête : vous pouvez venir la retirer.';
+    case 'in_delivery':
+      return 'Votre livreur est en route.';
+    case 'delivered':
+      return 'Commande remise. Merci et à bientôt !';
+    case 'cancelled':
+      return 'Votre commande a été annulée.';
+    default:
+      return null;
+  }
+}
+
 function setStatus(order: Order, status: OrderStatus, by: string) {
+  const forward = STATUS_RANK[status] > STATUS_RANK[order.status];
   order.status = status;
   order.history.push({ at: Date.now(), status, by });
+  // Un retour en arrière (employé retiré d'une commande) ne dérange personne.
+  if (!forward) return;
+  const tag = `order-${order.id}`;
+  const notice = customerNotice(order, status);
+  if (notice) pushToUsers([order.userId], { title: `Commande ${order.orderNumber}`, body: notice, tag, orderId: order.id });
+  if (status === 'confirmed') {
+    pushToRole('order_agent', { title: 'Nouvelle commande à préparer', body: `Commande ${order.orderNumber} confirmée.`, tag, orderId: order.id });
+  } else if (status === 'ready' && order.deliveryMode === 'delivery' && !order.deliveryDriverId) {
+    pushToRole('delivery_driver', { title: 'Course disponible', body: `La commande ${order.orderNumber} est prête à être livrée.`, tag, orderId: order.id });
+  } else if (status === 'ready' && order.deliveryDriverId) {
+    pushToUsers([order.deliveryDriverId], { title: `Commande ${order.orderNumber}`, body: 'La commande est prête : vous pouvez venir la chercher.', tag, orderId: order.id });
+  }
 }
+
+// Messages des autres participants arrivés depuis la dernière lecture de la conversation.
+const unreadCount = (order: Order, userId: string) => {
+  const readAt = order.chatReadAt?.[userId] || 0;
+  return db.messages.filter((m) => m.orderId === order.id && m.senderId !== userId && m.at > readAt).length;
+};
 
 // Ce que chaque profil a le droit de voir d'une commande.
 function viewOrder(order: Order, user: DbUser, role: Role): Order {
   const isOwner = order.userId === user.id;
   const isDriver = order.deliveryDriverId === user.id;
   const view: Order = { ...order, customer: { ...order.customer } };
+  delete view.chatReadAt;
 
   // Le code de remise est le secret du client : c'est lui qui le dicte au livreur.
   if (!isOwner && role !== 'admin') delete view.confirmationCode;
@@ -68,7 +119,7 @@ function viewOrder(order: Order, user: DbUser, role: Role): Order {
     const loc = driverLocations.get(order.deliveryDriverId);
     if (loc && Date.now() - loc.at < 10 * 60_000) view.driverLocation = loc;
   }
-  view.unreadHint = db.messages.filter((m) => m.orderId === order.id && m.senderId !== user.id).length;
+  view.unreadHint = unreadCount(order, user.id);
   return view;
 }
 
@@ -472,6 +523,7 @@ ordersRouter.post('/orders/:id/claim-delivery', writeLimiter, driverOnly, (req: 
   order.deliveryDriverPhone = phone;
   order.claimedByDriverAt = Date.now();
   order.history.push({ at: Date.now(), status: order.status, by: `${user.name} (prise en charge livraison)` });
+  pushToUsers([order.userId], { title: `Commande ${order.orderNumber}`, body: `${user.name} est votre livreur.`, tag: `order-${order.id}`, orderId: order.id });
   save();
   reply(req, res, order);
 });
@@ -581,6 +633,12 @@ ordersRouter.post('/orders/:id/assign', writeLimiter, requireRole('admin'), (req
       order.preparerName = target.name;
       if (order.status === 'confirmed') setStatus(order, 'preparing', req.user!.name);
     }
+    pushToUsers([target.id], {
+      title: kind === 'driver' ? 'Course attribuée' : 'Commande attribuée',
+      body: `La commande ${order.orderNumber} vous a été confiée.`,
+      tag: `order-${order.id}`,
+      orderId: order.id,
+    });
   }
   save();
   audit(req.user!.email, 'commande.attribuer', `${order.orderNumber} ${kind} → ${req.body?.email || 'personne'}`);
@@ -595,7 +653,14 @@ const canChat = (o: Order, user: DbUser, role: Role) =>
 ordersRouter.get('/orders/:id/messages', requireAuth, (req: AuthedRequest, res) => {
   const order = loadOrder(req, res, (o, role) => canChat(o, req.user!, role));
   if (!order) return;
-  res.json({ messages: db.messages.filter((m) => m.orderId === order.id).slice(-300) });
+  const messages = db.messages.filter((m) => m.orderId === order.id).slice(-300);
+  // Ouvrir la conversation la marque comme lue. L'écriture n'a lieu que s'il y avait du nouveau :
+  // le navigateur relit la conversation toutes les quelques secondes.
+  if (unreadCount(order, req.user!.id) > 0) {
+    order.chatReadAt = { ...order.chatReadAt, [req.user!.id]: Date.now() };
+    save();
+  }
+  res.json({ messages });
 });
 
 ordersRouter.post('/orders/:id/messages', writeLimiter, requireAuth, (req: AuthedRequest, res) => {
@@ -617,6 +682,11 @@ ordersRouter.post('/orders/:id/messages', writeLimiter, requireAuth, (req: Authe
     at: Date.now(),
   };
   db.messages.push(message);
+  // Les autres participants sont prévenus sur leur téléphone, même application fermée.
+  pushToUsers(
+    [order.userId, order.deliveryDriverId, order.preparerId].filter((id) => id !== req.user!.id),
+    { title: `${message.senderName} • commande ${order.orderNumber}`, body: text, tag: `chat-${order.id}`, orderId: order.id }
+  );
   if (db.messages.length > 20000) db.messages.splice(0, db.messages.length - 20000);
   save();
   res.status(201).json({ message });

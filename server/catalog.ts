@@ -20,10 +20,12 @@ import {
   validPassword,
   writeLimiter,
 } from './security';
+import { PUSH_PUBLIC_KEY } from './push';
 
 export const publicConfig = (): SiteConfig => ({
   ...db.config,
   turnstileSiteKey: TURNSTILE_SITE_KEY || undefined,
+  pushPublicKey: PUSH_PUBLIC_KEY,
   lensEnabled: !!process.env.GEMINI_API_KEY,
 });
 

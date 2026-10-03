@@ -326,6 +326,11 @@ export const OrderTrackingView: React.FC = () => {
                 <div>
                   <span className="font-mono font-bold text-base text-gray-900">{ord.orderNumber}</span>
                   <span className="text-xs text-gray-400"> • {formatDateTime(ord.createdAt)}</span>
+                  {!!ord.unreadHint && (
+                    <span className="ml-2 inline-flex items-center gap-1 bg-red-500 text-white rounded-full px-2 py-0.5 text-[10px] font-black align-middle">
+                      {ord.unreadHint} nouveau{ord.unreadHint > 1 ? 'x' : ''} message{ord.unreadHint > 1 ? 's' : ''}
+                    </span>
+                  )}
                   <p className="text-xs text-gray-500 mt-0.5">
                     {ord.items.reduce((n, i) => n + i.quantity, 0)} article(s) • {ord.deliverySlotName}
                   </p>

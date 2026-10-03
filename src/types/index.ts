@@ -243,7 +243,9 @@ export interface Order {
   loyaltyPointsEarned: number;
   confirmationCode?: string; // visible uniquement par le client (et l'admin)
   driverLocation?: LatLng & { at: number; accuracy?: number };
-  unreadHint?: number; // nb de messages de l'autre partie
+  unreadHint?: number; // nb de messages non lus des autres participants
+  // Dernière lecture de la conversation par participant (réservé au serveur, jamais transmis).
+  chatReadAt?: Record<string, number>;
   history: { at: number; status: OrderStatus; by: string }[];
 }
 
@@ -304,6 +306,8 @@ export interface SiteConfig {
   // renseignés par le serveur (lecture seule)
   updatedAt?: number;
   turnstileSiteKey?: string;
+  // Clé publique des notifications push ; absente si elles ne sont pas activées sur le serveur.
+  pushPublicKey?: string;
   lensEnabled?: boolean;
 }
 
