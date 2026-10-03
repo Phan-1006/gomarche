@@ -91,39 +91,19 @@
   ],
   "paymentGateways": {
     "airtel": {
-      "merchantId": "AIRTEL_GOMARCHE_GOMA",
-      "apiKey": "ak_live_airtel_goma_8992a7f012b",
-      "secretKey": "sk_live_secret_goma_99812",
-      "webhookUrl": "https://api.gomarche.cd/v1/webhooks/airtel-money",
       "enabled": true,
-      "sandboxMode": false,
       "phonePrefix": "097, 099, 098"
     },
     "orange": {
-      "merchantId": "OM_GOMARCHE_GOMA_001",
-      "apiKey": "om_live_token_goma_77a942cd881f",
-      "secretKey": "om_sec_goma_88201",
-      "webhookUrl": "https://api.gomarche.cd/v1/webhooks/orange-money",
       "enabled": true,
-      "sandboxMode": false,
       "phonePrefix": "084, 085, 089"
     },
     "mpesa": {
-      "merchantId": "VODA_MPESA_GOMA_883011",
-      "apiKey": "mpesa_app_key_goma_38a9bc71",
-      "passKey": "mpesa_passkey_goma_b3c8f12a884",
-      "webhookUrl": "https://api.gomarche.cd/v1/webhooks/vodacom-mpesa",
       "enabled": true,
-      "sandboxMode": false,
       "phonePrefix": "081, 082, 083"
     },
     "afrimoney": {
-      "merchantId": "AFRIMONEY_GOMARCHE_GOMA",
-      "apiKey": "afri_key_goma_9921_cd",
-      "secretKey": "afri_secret_goma_449210",
-      "webhookUrl": "https://api.gomarche.cd/v1/webhooks/afrimoney",
       "enabled": true,
-      "sandboxMode": false,
       "phonePrefix": "090, 091"
     }
   },
@@ -132,7 +112,5 @@
     "orange": true,
     "mpesa": true,
     "afrimoney": true
-  },
-  "adminPassword": "admin",
-  "googleClientId": ""
+  }
 }

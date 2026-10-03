@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   User,
   Category,
@@ -7,61 +7,64 @@ import {
   Order,
   SiteConfig,
   Currency,
-  Role,
-  OrderStatus,
-  PaymentGatewayConfig,
-  UserActivity,
-  DeliverySlotConfig,
+  GatewayKey,
+  PaymentGatewayItemConfig,
 } from '../types';
-import {
-  INITIAL_CATEGORIES,
-  INITIAL_PRODUCTS,
-  INITIAL_USERS,
-  INITIAL_ORDERS,
-  INITIAL_SITE_CONFIG,
-  INITIAL_USER_ACTIVITIES,
-} from '../data/mockData';
-import { googleSignIn, firebaseLogout, initFirebaseAuth } from '../services/firebaseAuth';
+import { INITIAL_SITE_CONFIG } from '../data/mockData';
+import { api, ApiError, errorMessage } from '../services/api';
+import { googleIdToken } from '../services/firebaseAuth';
+
+export type AppView =
+  | 'home'
+  | 'promotions'
+  | 'categories'
+  | 'admin'
+  | 'agent'
+  | 'prep'
+  | 'cashier'
+  | 'delivery'
+  | 'orders'
+  | 'product_detail';
+
+type AuthResult = { success: boolean; message?: string };
+type Toast = { id: number; kind: 'success' | 'error'; message: string };
 
 interface AppContextType {
+  ready: boolean;
   currentUser: User | null;
-  users: User[];
   categories: Category[];
   products: Product[];
   cart: CartItem[];
-  orders: Order[];
+  orders: Order[]; // commandes du client connecté
+  workOrders: Order[]; // commandes visibles selon le rôle employé
   siteConfig: SiteConfig;
   currency: Currency;
   deliveryMode: 'delivery' | 'drive';
   selectedCategoryFilter: string | null;
   searchQuery: string;
-  activeView: 'home' | 'promotions' | 'categories' | 'admin' | 'agent' | 'delivery' | 'orders' | 'product_detail';
+  activeView: AppView;
   selectedProduct: Product | null;
   selectedOrder: Order | null;
   isCartOpen: boolean;
   isAuthOpen: boolean;
   isCheckoutOpen: boolean;
-  userActivities: UserActivity[];
 
-  // Actions
-  setCurrentUser: (user: User | null) => void;
   setCurrency: (c: Currency) => void;
   setDeliveryMode: (mode: 'delivery' | 'drive') => void;
   setSelectedCategoryFilter: (catId: string | null) => void;
   setSearchQuery: (query: string) => void;
-  setActiveView: (view: 'home' | 'promotions' | 'categories' | 'admin' | 'agent' | 'delivery' | 'orders' | 'product_detail') => void;
+  setActiveView: (view: AppView) => void;
   setSelectedProduct: (p: Product | null) => void;
   setSelectedOrder: (o: Order | null) => void;
   setIsCartOpen: (open: boolean) => void;
   setIsAuthOpen: (open: boolean) => void;
   setIsCheckoutOpen: (open: boolean) => void;
 
-  // Helpers
   formatPrice: (usdAmount: number, forceCurrency?: Currency) => string;
   convertUsdToCdf: (usdAmount: number) => number;
   formatDualPrice: (usdAmount: number) => { primary: string; secondary: string };
-  
-  // Cart
+  notify: (message: string, kind?: 'success' | 'error') => void;
+
   addToCart: (product: Product, qty?: number) => void;
   removeFromCart: (productId: string) => void;
   updateCartQuantity: (productId: string, qty: number) => void;
@@ -70,241 +73,201 @@ interface AppContextType {
   cartTotalCdf: number;
   cartItemsCount: number;
 
-  // Auth & Roles
-  login: (email: string, password?: string, name?: string, isGoogleAuth?: boolean) => { success: boolean; message?: string };
-  loginWithGoogle: () => Promise<{ success: boolean; message?: string; isUnauthorizedDomain?: boolean; domain?: string }>;
-  logout: () => void;
-  changeAdminPassword: (oldPass: string, newPass: string) => { success: boolean; message: string };
-  
-  // Admin & Catalog operations
+  login: (email: string, password: string, extra?: object) => Promise<AuthResult>;
+  register: (name: string, email: string, password: string, extra?: object) => Promise<AuthResult>;
+  loginWithGoogle: () => Promise<AuthResult>;
+  logout: () => Promise<void>;
+  updateProfile: (fields: Partial<Pick<User, 'name' | 'phone' | 'address' | 'commune'>>) => Promise<AuthResult>;
+  homeViewFor: (user: User | null) => AppView;
+
   updateSiteConfig: (newConfig: Partial<SiteConfig>) => void;
-  updatePaymentGateway: (gateway: keyof PaymentGatewayConfig, data: any) => void;
-  updateDeliverySlot: (slotId: string, updated: Partial<DeliverySlotConfig>) => void;
-  addCategory: (cat: Omit<Category, 'id'>) => void;
-  updateCategory: (cat: Category) => void;
-  deleteCategory: (id: string) => void;
-  addProduct: (prod: Omit<Product, 'id'>) => void;
-  updateProduct: (prod: Product) => void;
-  deleteProduct: (id: string) => void;
-  
-  // Orders & Goma Delivery flow
-  createOrder: (order: Omit<Order, 'id' | 'orderNumber' | 'date' | 'createdAtTimestamp' | 'cancellationDeadlineTimestamp' | 'confirmationCode'>) => Order;
-  cancelOrder: (orderId: string, reason?: string) => boolean;
-  confirmOrderDeliveryWithCode: (orderId: string, enteredCode: string) => { success: boolean; message: string };
-  updateOrderStatus: (orderId: string, status: OrderStatus, driverId?: string) => void;
-  assignDriverToOrder: (orderId: string, driverId: string) => void;
+  // Enregistrement immédiat avec retour d'erreur, pour les formulaires validés d'un bloc.
+  saveSiteConfig: (patch: Partial<SiteConfig>) => Promise<AuthResult>;
+  updatePaymentGateway: (gateway: GatewayKey, data: Partial<PaymentGatewayItemConfig>) => void;
+  addCategory: (cat: Omit<Category, 'id'>) => Promise<boolean>;
+  updateCategory: (cat: Category) => Promise<boolean>;
+  deleteCategory: (id: string) => Promise<boolean>;
+  addProduct: (prod: Omit<Product, 'id'>) => Promise<boolean>;
+  updateProduct: (prod: Product) => Promise<boolean>;
+  deleteProduct: (id: string) => Promise<boolean>;
 
-  // Activity Log
-  logActivity: (type: UserActivity['type'], title: string, description: string) => void;
+  refreshOrders: () => Promise<void>;
+  // Applique une action serveur sur une commande et met la liste à jour avec la réponse.
+  orderAction: (orderId: string, action: string, body?: object) => Promise<Order>;
+  trackOrder: (order: Order) => void;
 
-  // PWA
   deferredPrompt: any;
   setDeferredPrompt: (p: any) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const getStored = <T,>(key: string, defaultVal: T): T => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultVal;
+  } catch {
+    return defaultVal;
+  }
+};
+
+const setStored = (key: string, value: unknown) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* stockage plein ou navigation privée : sans conséquence */
+  }
+};
+
+// Anciennes clés où le navigateur conservait comptes, mots de passe et commandes.
+const LEGACY_KEYS = [
+  'gm_site_config_v2', 'gm_categories_v2', 'gm_products_v2', 'gm_users_v2', 'gm_current_user_v4',
+  'gm_orders_v2', 'gm_activities_v2', 'gm_cart_v2', 'gm_custom_firebase_config',
+];
+
+const STAFF_VIEW: Partial<Record<User['role'], AppView>> = {
+  admin: 'admin',
+  category_agent: 'agent',
+  order_agent: 'prep',
+  cashier: 'cashier',
+  delivery_driver: 'delivery',
+};
+
+const VIEW_ROLES: Partial<Record<AppView, User['role'][]>> = {
+  admin: ['admin'],
+  agent: ['admin', 'category_agent'],
+  prep: ['admin', 'order_agent'],
+  cashier: ['admin', 'cashier'],
+  delivery: ['delivery_driver'],
+};
+
+type CartLine = { productId: string; quantity: number };
+type CatalogCache = { config: SiteConfig; categories: Category[]; products: Product[] };
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const getStored = <T,>(key: string, defaultVal: T): T => {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultVal;
-    } catch {
-      return defaultVal;
-    }
-  };
+  // Copie locale du catalogue : uniquement pour afficher la boutique instantanément au
+  // démarrage. Elle est remplacée dès que le serveur répond et n'est jamais renvoyée vers lui.
+  const cached = useMemo(() => getStored<CatalogCache | null>('gm_catalog_cache_v1', null), []);
 
-  const [siteConfig, setSiteConfig] = useState<SiteConfig>(() =>
-    getStored('gm_site_config_v2', INITIAL_SITE_CONFIG)
-  );
-
-  const [categories, setCategories] = useState<Category[]>(() =>
-    getStored('gm_categories_v2', INITIAL_CATEGORIES)
-  );
-
-  const [products, setProducts] = useState<Product[]>(() =>
-    getStored('gm_products_v2', INITIAL_PRODUCTS)
-  );
-
-  const [users, setUsers] = useState<User[]>(() =>
-    getStored('gm_users_v2', INITIAL_USERS)
-  );
-
-  // By default, visitor is a guest (null). Strict authentication required for admin & agents.
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const stored = getStored<User | null>('gm_current_user_v4', null);
-    return stored || null;
-  });
-
-  const [cart, setCart] = useState<CartItem[]>(() =>
-    getStored('gm_cart_v2', [])
-  );
-
-  const [orders, setOrders] = useState<Order[]>(() =>
-    getStored('gm_orders_v2', INITIAL_ORDERS)
-  );
-
-  const [userActivities, setUserActivities] = useState<UserActivity[]>(() =>
-    getStored('gm_activities_v2', INITIAL_USER_ACTIVITIES)
-  );
-
-  const [currency, setCurrency] = useState<Currency>(() =>
-    getStored('gm_currency_v2', 'USD')
-  );
+  const [ready, setReady] = useState(false);
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>(cached?.config || INITIAL_SITE_CONFIG);
+  const [categories, setCategories] = useState<Category[]>(cached?.categories || []);
+  const [products, setProducts] = useState<Product[]>(cached?.products || []);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [cartLines, setCartLines] = useState<CartLine[]>(() => getStored('gm_cart_v3', []));
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [workOrders, setWorkOrders] = useState<Order[]>([]);
+  const [currency, setCurrency] = useState<Currency>(() => getStored('gm_currency_v2', 'USD'));
 
   const [deliveryMode, setDeliveryMode] = useState<'delivery' | 'drive'>('delivery');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeView, setActiveView] = useState<'home' | 'promotions' | 'categories' | 'admin' | 'agent' | 'delivery' | 'orders' | 'product_detail'>('home');
+  const [activeView, setActiveViewRaw] = useState<AppView>('home');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
-  // Live Sync state to localStorage & Server API (for real cross-device persistence)
-  useEffect(() => {
-    const syncFromServer = () => {
-      // 1. Fetch server-persisted site config for cross-device synchronization
-      fetch('/api/site-config')
-        .then((res) => (res.ok ? res.json() : null))
-        .then((serverConfig) => {
-          if (serverConfig && typeof serverConfig === 'object' && Object.keys(serverConfig).length > 0) {
-            setSiteConfig((prev) => ({
-              ...prev,
-              ...serverConfig,
-              paymentGateways: {
-                ...prev.paymentGateways,
-                ...(serverConfig.paymentGateways || {}),
-              },
-            }));
-          } else {
-            // Seed server if empty
-            fetch('/api/site-config', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(siteConfig),
-            }).catch(() => {});
-          }
-        })
-        .catch(() => {});
+  const notify = useCallback((message: string, kind: 'success' | 'error' = 'success') => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev.slice(-2), { id, kind, message }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), kind === 'error' ? 6000 : 2500);
+  }, []);
 
-      // 2. Fetch server-persisted products
-      fetch('/api/products')
-        .then((res) => (res.ok ? res.json() : null))
-        .then((serverProds) => {
-          if (Array.isArray(serverProds) && serverProds.length > 0) {
-            setProducts(serverProds);
-          } else {
-            fetch('/api/products', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(products),
-            }).catch(() => {});
-          }
-        })
-        .catch(() => {});
+  // ---------------------------------------------------------------- synchronisation serveur
 
-      // 3. Fetch server-persisted categories
-      fetch('/api/categories')
-        .then((res) => (res.ok ? res.json() : null))
-        .then((serverCats) => {
-          if (Array.isArray(serverCats) && serverCats.length > 0) {
-            setCategories(serverCats);
-          } else {
-            fetch('/api/categories', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(categories),
-            }).catch(() => {});
-          }
-        })
-        .catch(() => {});
-    };
+  // Modifications de configuration en cours d'envoi : tant qu'il y en a, la synchronisation
+  // périodique ne doit pas écraser ce que l'admin est en train de saisir.
+  const pendingConfig = useRef<Partial<SiteConfig>>({});
+  const configTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const configBusy = () => configTimer.current !== null || Object.keys(pendingConfig.current).length > 0;
 
-    // Initial fetch
-    syncFromServer();
+  const syncCatalog = useCallback(async () => {
+    try {
+      const data = await api<CatalogCache & { user: User | null }>('GET', '/bootstrap');
+      if (!configBusy()) setSiteConfig(data.config);
+      setCategories(data.categories);
+      setProducts(data.products);
+      setCurrentUser(data.user);
+      setStored('gm_catalog_cache_v1', { config: data.config, categories: data.categories, products: data.products });
+    } catch {
+      /* hors ligne : on garde l'affichage courant, la prochaine tentative rattrapera */
+    } finally {
+      setReady(true);
+    }
+  }, []);
 
-    // Live polling for cross-device updates every 4 seconds
-    const interval = setInterval(syncFromServer, 4000);
-
-    // Sync on focus / visibility change
-    const onFocus = () => syncFromServer();
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onFocus);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onFocus);
-    };
+  const refreshOrders = useCallback(async () => {
+    try {
+      const data = await api<{ mine: Order[]; work: Order[] }>('GET', '/orders');
+      setOrders(data.mine);
+      setWorkOrders(data.work);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) setCurrentUser(null);
+    }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('gm_site_config_v2', JSON.stringify(siteConfig));
-    // Persist site config to server so changes by admin appear on all devices
-    fetch('/api/site-config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(siteConfig),
-    }).catch(() => {});
+    LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
+    syncCatalog();
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') syncCatalog();
+    }, 20_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') syncCatalog();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [syncCatalog]);
 
-    // Dynamically update favicon and app icons
-    const iconUrl = siteConfig.pwaIconUrl || siteConfig.customLogoUrl;
-    if (iconUrl) {
-      const linkIcon = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
-      if (linkIcon) linkIcon.href = iconUrl;
-      const linkApple = document.querySelector("link[rel*='apple-touch-icon']") as HTMLLinkElement;
-      if (linkApple) linkApple.href = iconUrl;
+  const userId = currentUser?.id;
+  useEffect(() => {
+    if (!userId) {
+      setOrders([]);
+      setWorkOrders([]);
+      return;
     }
-  }, [siteConfig]);
+    refreshOrders();
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') refreshOrders();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [userId, refreshOrders]);
 
+  // Nom, icône d'onglet et icône d'application suivent la configuration du serveur. Le
+  // paramètre de version force chaque appareil à recharger l'image quand l'admin la change.
   useEffect(() => {
-    localStorage.setItem('gm_categories_v2', JSON.stringify(categories));
-    fetch('/api/categories', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(categories),
-    }).catch(() => {});
-  }, [categories]);
+    document.title = `${siteConfig.siteName} - Supermarché en Ligne`;
+    const icon = siteConfig.pwaIconUrl || siteConfig.customLogoUrl;
+    const version = siteConfig.updatedAt || 0;
+    const setLink = (rel: string, href: string) => {
+      let link = document.querySelector<HTMLLinkElement>(`link[rel='${rel}']`);
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = rel;
+        document.head.appendChild(link);
+      }
+      link.href = href;
+    };
+    if (icon) {
+      const href = `${icon}${icon.includes('?') ? '&' : '?'}v=${version}`;
+      setLink('icon', href);
+      setLink('apple-touch-icon', href);
+    }
+    setLink('manifest', `/manifest.webmanifest?v=${version}`);
+    document.querySelector("meta[name='theme-color']")?.setAttribute('content', siteConfig.primaryColor);
+  }, [siteConfig.siteName, siteConfig.pwaIconUrl, siteConfig.customLogoUrl, siteConfig.updatedAt, siteConfig.primaryColor]);
 
-  useEffect(() => {
-    localStorage.setItem('gm_products_v2', JSON.stringify(products));
-    // Persist products to server so changes by agents/admin appear on all devices
-    fetch('/api/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(products),
-    }).catch(() => {});
-  }, [products]);
+  useEffect(() => setStored('gm_cart_v3', cartLines), [cartLines]);
+  useEffect(() => setStored('gm_currency_v2', currency), [currency]);
 
-  useEffect(() => {
-    localStorage.setItem('gm_users_v2', JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    localStorage.setItem('gm_current_user_v4', JSON.stringify(currentUser));
-  }, [currentUser]);
-
-  useEffect(() => {
-    localStorage.setItem('gm_cart_v2', JSON.stringify(cart));
-  }, [cart]);
-
-  useEffect(() => {
-    localStorage.setItem('gm_orders_v2', JSON.stringify(orders));
-  }, [orders]);
-
-  useEffect(() => {
-    localStorage.setItem('gm_activities_v2', JSON.stringify(userActivities));
-  }, [userActivities]);
-
-  useEffect(() => {
-    localStorage.setItem('gm_currency_v2', JSON.stringify(currency));
-  }, [currency]);
-
-  // Handle PWA prompt
   useEffect(() => {
     const handler = (e: any) => {
       e.preventDefault();
@@ -314,552 +277,263 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  const convertUsdToCdf = (usdAmount: number): number => {
-    return Math.round(usdAmount * siteConfig.exchangeRateUsdToCdf);
-  };
+  // ---------------------------------------------------------------- prix
+
+  const convertUsdToCdf = (usdAmount: number): number => Math.round(usdAmount * siteConfig.exchangeRateUsdToCdf);
 
   const formatPrice = (usdAmount: number, forceCurrency?: Currency): string => {
-    const activeCurr = forceCurrency || currency;
-    if (activeCurr === 'CDF') {
-      const cdfVal = convertUsdToCdf(usdAmount);
-      return `${cdfVal.toLocaleString('fr-FR')} FC`;
-    }
+    if ((forceCurrency || currency) === 'CDF') return `${convertUsdToCdf(usdAmount).toLocaleString('fr-FR')} FC`;
     return `$ ${usdAmount.toFixed(2)}`;
   };
 
   const formatDualPrice = (usdAmount: number) => {
-    const cdf = convertUsdToCdf(usdAmount);
-    if (currency === 'USD') {
-      return {
-        primary: `$ ${usdAmount.toFixed(2)}`,
-        secondary: `${cdf.toLocaleString('fr-FR')} FC`,
-      };
-    }
-    return {
-      primary: `${cdf.toLocaleString('fr-FR')} FC`,
-      secondary: `$ ${usdAmount.toFixed(2)}`,
-    };
+    const usd = `$ ${usdAmount.toFixed(2)}`;
+    const cdf = `${convertUsdToCdf(usdAmount).toLocaleString('fr-FR')} FC`;
+    return currency === 'USD' ? { primary: usd, secondary: cdf } : { primary: cdf, secondary: usd };
   };
 
-  const logActivity = (type: UserActivity['type'], title: string, description: string) => {
-    const now = new Date();
-    const timeStr = `Aujourd'hui, ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    const newAct: UserActivity = {
-      id: `act-${Date.now()}`,
-      userId: currentUser?.id || 'client-guest',
-      type,
-      title,
-      description,
-      timestamp: timeStr,
-    };
-    setUserActivities((prev) => [newAct, ...prev]);
-  };
+  // ---------------------------------------------------------------- panier
 
-  // Cart operations
+  // Le panier ne retient que des identifiants : prix et stock affichés viennent toujours du
+  // catalogue à jour, et un article retiré de la vente disparaît du panier.
+  const cart: CartItem[] = useMemo(
+    () =>
+      cartLines.flatMap((line) => {
+        const product = products.find((p) => p.id === line.productId);
+        return product ? [{ product, quantity: line.quantity }] : [];
+      }),
+    [cartLines, products]
+  );
+
   const addToCart = (product: Product, qty: number = 1) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + qty }
-            : item
-        );
-      }
-      return [...prev, { product, quantity: qty }];
-    });
-  };
-
-  const removeFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
-  };
-
-  const updateCartQuantity = (productId: string, qty: number) => {
-    if (qty <= 0) {
-      removeFromCart(productId);
+    const inCart = cartLines.find((l) => l.productId === product.id)?.quantity || 0;
+    if (inCart + qty > product.stockCount) {
+      notify(product.stockCount > 0 ? `Stock limité : ${product.stockCount} disponible(s).` : 'Cet article est en rupture de stock.', 'error');
       return;
     }
-    setCart((prev) =>
-      prev.map((item) =>
-        item.product.id === productId ? { ...item, quantity: qty } : item
-      )
+    setCartLines((prev) =>
+      prev.some((l) => l.productId === product.id)
+        ? prev.map((l) => (l.productId === product.id ? { ...l, quantity: l.quantity + qty } : l))
+        : [...prev, { productId: product.id, quantity: qty }]
     );
   };
 
-  const clearCart = () => setCart([]);
+  const removeFromCart = (productId: string) => setCartLines((prev) => prev.filter((l) => l.productId !== productId));
 
-  const cartTotalUsd = cart.reduce((sum, item) => {
-    const unitPrice = item.product.discountPercent
-      ? item.product.priceUsd * (1 - item.product.discountPercent / 100)
-      : item.product.priceUsd;
-    return sum + unitPrice * item.quantity;
-  }, 0);
+  const updateCartQuantity = (productId: string, qty: number) => {
+    if (qty <= 0) return removeFromCart(productId);
+    const stock = products.find((p) => p.id === productId)?.stockCount ?? qty;
+    if (qty > stock) notify(`Stock limité : ${stock} disponible(s).`, 'error');
+    setCartLines((prev) => prev.map((l) => (l.productId === productId ? { ...l, quantity: Math.min(qty, stock) } : l)));
+  };
 
+  const clearCart = () => setCartLines([]);
+
+  const cartTotalUsd = cart.reduce(
+    (sum, item) => sum + Math.round(item.product.priceUsd * (1 - (item.product.discountPercent || 0) / 100) * 100) / 100 * item.quantity,
+    0
+  );
   const cartTotalCdf = convertUsdToCdf(cartTotalUsd);
   const cartItemsCount = cart.reduce((count, item) => count + item.quantity, 0);
 
-  // Strict Authentication with Password Verification
-  const login = (
-    email: string,
-    password?: string,
-    name?: string,
-    isGoogleAuth?: boolean
-  ): { success: boolean; message?: string } => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const isAdmin = normalizedEmail === 'mughenyakavale@gmail.com';
-    const adminExpectedPassword = siteConfig.adminPassword || 'admin';
+  // ---------------------------------------------------------------- comptes
 
-    // 1. If trying to log into the Admin account (Mughenyakavale@gmail.com)
-    if (isAdmin) {
-      if (!password || password !== adminExpectedPassword) {
-        return {
-          success: false,
-          message: 'Mot de passe administrateur incorrect pour ce compte.',
-        };
-      }
-      const existingAdmin = users.find((u) => u.email.toLowerCase() === 'mughenyakavale@gmail.com') || INITIAL_USERS[0];
-      const adminUser: User = {
-        ...existingAdmin,
-        role: 'admin',
-        name: existingAdmin.name || 'Mughenya Kavale',
-        email: 'Mughenyakavale@gmail.com',
-      };
-      setCurrentUser(adminUser);
-      setActiveView('admin');
-      logActivity('login', 'Connexion Administrateur', 'Accès sécurisé au Panneau de Contrôle Gomarché');
-      return { success: true };
-    }
+  const homeViewFor = (user: User | null): AppView => (user && STAFF_VIEW[user.role]) || 'home';
 
-    // 2. Check existing users (Agents, Drivers, Registered Customers)
-    const existing = users.find((u) => u.email.toLowerCase() === normalizedEmail);
-    if (existing) {
-      // If user has a role of agent or delivery driver, password is strictly required
-      if (existing.role === 'category_agent' || existing.role === 'delivery_driver') {
-        if (!password || existing.password !== password) {
-          return {
-            success: false,
-            message: 'Mot de passe professionnel incorrect pour ce compte employé.',
-          };
-        }
-      } else if (existing.password && password && !isGoogleAuth) {
-        if (existing.password !== password) {
-          return { success: false, message: 'Mot de passe incorrect.' };
-        }
-      }
-
-      setCurrentUser(existing);
-      if (existing.role === 'category_agent') {
-        setActiveView('agent');
-      } else if (existing.role === 'delivery_driver') {
-        setActiveView('delivery');
-      } else {
-        setActiveView('home');
-      }
-      logActivity('login', 'Connexion sécurisée', `Connexion effectuée pour ${existing.name}`);
-      return { success: true };
-    }
-
-    // 3. New user registration (via Google or Email) -> ALWAYS and STRICTLY 'customer'
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      email: email.trim(),
-      name: name?.trim() || email.split('@')[0],
-      role: 'customer',
-      password: password || 'client_pwd',
-      avatar: isGoogleAuth
-        ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || email)}`
-        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
-      loyaltyPoints: 100,
-    };
-
-    setUsers((prev) => [...prev, newUser]);
-    setCurrentUser(newUser);
-    setActiveView('home');
-    logActivity('login', isGoogleAuth ? 'Connexion Google réussie' : 'Compte créé avec succès', `Bienvenue sur Gomarché Goma, ${newUser.name}`);
+  const openSession = (user: User): AuthResult => {
+    setCurrentUser(user);
+    setActiveViewRaw(homeViewFor(user));
     return { success: true };
   };
 
-  // Real Google Sign-in with official Google OAuth / Firebase
-  const loginWithGoogle = async (): Promise<{
-    success: boolean;
-    message?: string;
-    isUnauthorizedDomain?: boolean;
-    domain?: string;
-  }> => {
+  const login = async (email: string, password: string, extra: object = {}): Promise<AuthResult> => {
     try {
-      const res = await googleSignIn();
-      if (!res?.user) {
-        return { success: false, message: 'Aucun compte Google sélectionné.' };
-      }
+      return openSession((await api<{ user: User }>('POST', '/auth/login', { email, password, ...extra })).user);
+    } catch (e) {
+      return { success: false, message: errorMessage(e) };
+    }
+  };
 
-      const email = res.user.email || '';
-      const name = res.user.displayName || email.split('@')[0];
-      const photoURL = res.user.photoURL || undefined;
-      const normalizedEmail = email.trim().toLowerCase();
-      const isAdmin = normalizedEmail === 'mughenyakavale@gmail.com';
+  const register = async (name: string, email: string, password: string, extra: object = {}): Promise<AuthResult> => {
+    try {
+      return openSession((await api<{ user: User }>('POST', '/auth/register', { name, email, password, ...extra })).user);
+    } catch (e) {
+      return { success: false, message: errorMessage(e) };
+    }
+  };
 
-      // 1. Mughenya Kavale Google Sign-In -> Verified Super Admin
-      if (isAdmin) {
-        const existingAdmin = users.find((u) => u.email.toLowerCase() === 'mughenyakavale@gmail.com') || INITIAL_USERS[0];
-        const adminUser: User = {
-          ...existingAdmin,
-          role: 'admin',
-          name: name || 'Mughenya Kavale',
-          email: 'Mughenyakavale@gmail.com',
-          avatar: photoURL || existingAdmin.avatar,
-        };
-        setCurrentUser(adminUser);
-        setActiveView('admin');
-        logActivity('login', 'Connexion Google Administrateur', 'Accès Super Admin validé par Google');
-        return { success: true };
-      }
-
-      // 2. Existing registered user
-      const existing = users.find((u) => u.email.toLowerCase() === normalizedEmail);
-      if (existing) {
-        const updatedUser: User = {
-          ...existing,
-          name: name || existing.name,
-          avatar: photoURL || existing.avatar,
-        };
-        setCurrentUser(updatedUser);
-        if (existing.role === 'category_agent') {
-          setActiveView('agent');
-        } else if (existing.role === 'delivery_driver') {
-          setActiveView('delivery');
-        } else {
-          setActiveView('home');
-        }
-        logActivity('login', 'Connexion Google réussie', `Bienvenue de retour, ${updatedUser.name}`);
-        return { success: true };
-      }
-
-      // 3. New verified Google Customer
-      const newCustomer: User = {
-        id: `user-${Date.now()}`,
-        email,
-        name,
-        role: 'customer',
-        avatar: photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || email)}`,
-        loyaltyPoints: 100,
-      };
-
-      setUsers((prev) => [...prev, newCustomer]);
-      setCurrentUser(newCustomer);
-      setActiveView('home');
-      logActivity('login', 'Compte Google créé', `Bienvenue sur Gomarché Goma, ${newCustomer.name}`);
-      return { success: true };
+  const loginWithGoogle = async (): Promise<AuthResult> => {
+    try {
+      const idToken = await googleIdToken();
+      return openSession((await api<{ user: User }>('POST', '/auth/google', { idToken })).user);
     } catch (err: any) {
-      console.error('Google Sign In failed:', err);
-      if (err.code === 'auth/popup-closed-by-user') {
-        return { success: false, message: 'La fenêtre de connexion Google a été fermée.' };
+      if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
+        return { success: false, message: 'Connexion Google annulée.' };
       }
-      if (err.code === 'auth/cancelled-popup-request') {
-        return { success: false, message: 'Demande de connexion annulée.' };
+      if (err?.code === 'auth/popup-blocked') {
+        return { success: false, message: 'Votre navigateur a bloqué la fenêtre Google. Autorisez les fenêtres pop-up pour ce site.' };
       }
-      if (
-        err.code === 'auth/unauthorized-domain' ||
-        (err.message && err.message.toLowerCase().includes('unauthorized-domain'))
-      ) {
-        const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
+      if (err?.code === 'auth/unauthorized-domain') {
         return {
           success: false,
-          isUnauthorizedDomain: true,
-          domain: currentHost,
-          message: `Domaine non autorisé dans Firebase (${currentHost}). Ajoutez-le dans la console Firebase pour débloquer la connexion Google.`,
+          message: `Le domaine ${window.location.hostname} n’est pas encore autorisé dans Firebase (Authentication → Settings → Authorized domains).`,
         };
       }
-      return { success: false, message: err.message || 'Échec de la connexion avec Google.' };
+      return { success: false, message: err instanceof ApiError ? err.message : 'Échec de la connexion avec Google.' };
     }
   };
 
   const logout = async () => {
-    try {
-      await firebaseLogout();
-    } catch (e) {
-      console.warn('Firebase logout warning', e);
-    }
+    await api('POST', '/auth/logout').catch(() => {});
     setCurrentUser(null);
-    setActiveView('home');
+    setSelectedOrderId(null);
+    setActiveViewRaw('home');
   };
 
-  const changeAdminPassword = (oldPass: string, newPass: string): { success: boolean; message: string } => {
-    const currentPass = siteConfig.adminPassword || 'admin';
-    if (oldPass !== currentPass) {
-      return { success: false, message: 'Ancien mot de passe administrateur incorrect.' };
+  const updateProfile: AppContextType['updateProfile'] = async (fields) => {
+    try {
+      setCurrentUser((await api<{ user: User }>('PUT', '/me', fields)).user);
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: errorMessage(e) };
     }
-    if (!newPass || newPass.trim().length < 4) {
-      return { success: false, message: 'Le nouveau mot de passe doit comporter au moins 4 caractères.' };
-    }
-    const updatedPass = newPass.trim();
-    updateSiteConfig({ adminPassword: updatedPass });
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.email.toLowerCase() === 'mughenyakavale@gmail.com'
-          ? { ...u, password: updatedPass }
-          : u
-      )
-    );
-    return { success: true, message: 'Mot de passe administrateur modifié avec succès.' };
   };
 
-  const handleSetActiveView = (view: 'home' | 'promotions' | 'categories' | 'admin' | 'agent' | 'delivery' | 'orders' | 'product_detail') => {
-    if (view === 'admin') {
-      if (currentUser?.role !== 'admin' || currentUser?.email.toLowerCase() !== 'mughenyakavale@gmail.com') {
-        setIsAuthOpen(true);
-        return;
-      }
+  // Simple confort d'affichage : la vraie barrière est le serveur, qui refuse toute requête
+  // d'un rôle non autorisé.
+  const setActiveView = (view: AppView) => {
+    const roles = VIEW_ROLES[view];
+    if ((roles && (!currentUser || !roles.includes(currentUser.role))) || (view === 'orders' && !currentUser)) {
+      setIsAuthOpen(true);
+      return;
     }
-    if (view === 'agent') {
-      if (currentUser?.role !== 'category_agent' && currentUser?.role !== 'admin') {
-        setIsAuthOpen(true);
-        return;
-      }
-    }
-    if (view === 'delivery') {
-      if (currentUser?.role !== 'delivery_driver' && currentUser?.role !== 'admin') {
-        setIsAuthOpen(true);
-        return;
-      }
-    }
-    setActiveView(view);
+    setActiveViewRaw(view);
   };
 
+  // ---------------------------------------------------------------- administration
+
+  const flushConfig = async () => {
+    configTimer.current = null;
+    const patch = pendingConfig.current;
+    pendingConfig.current = {};
+    try {
+      const { config } = await api<{ config: SiteConfig }>('PUT', '/config', patch);
+      if (!configBusy()) setSiteConfig(config);
+    } catch (e) {
+      notify(errorMessage(e), 'error');
+      if (!configBusy()) syncCatalog();
+    }
+  };
+
+  // Affichage immédiat, envoi groupé : taper dans un champ ne déclenche pas une requête par lettre.
   const updateSiteConfig = (newConfig: Partial<SiteConfig>) => {
-    setSiteConfig((prev) => {
-      const updated = { ...prev, ...newConfig };
-      fetch('/api/site-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      }).catch(() => {});
-      return updated;
-    });
+    setSiteConfig((prev) => ({ ...prev, ...newConfig }));
+    pendingConfig.current = { ...pendingConfig.current, ...newConfig };
+    if (configTimer.current) clearTimeout(configTimer.current);
+    configTimer.current = setTimeout(flushConfig, 700);
   };
 
-  const updatePaymentGateway = (gateway: keyof PaymentGatewayConfig, data: any) => {
-    setSiteConfig((prev) => {
-      const updated = {
-        ...prev,
-        paymentGateways: {
-          ...prev.paymentGateways,
-          [gateway]: {
-            ...prev.paymentGateways[gateway],
-            ...data,
-          },
-        },
-      };
-      fetch('/api/site-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      }).catch(() => {});
-      return updated;
-    });
+  const saveSiteConfig = async (patch: Partial<SiteConfig>): Promise<AuthResult> => {
+    try {
+      const { config } = await api<{ config: SiteConfig }>('PUT', '/config', patch);
+      setSiteConfig(config);
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: errorMessage(e) };
+    }
   };
 
-  const updateDeliverySlot = (slotId: string, updated: Partial<DeliverySlotConfig>) => {
-    setSiteConfig((prev) => ({
-      ...prev,
-      deliverySlots: prev.deliverySlots.map((s) => (s.id === slotId ? { ...s, ...updated } : s)),
-    }));
+  const updatePaymentGateway = (gateway: GatewayKey, data: Partial<PaymentGatewayItemConfig>) => {
+    const current = pendingConfig.current.paymentGateways || siteConfig.paymentGateways;
+    updateSiteConfig({ paymentGateways: { ...current, [gateway]: { ...current[gateway], ...data } } });
   };
 
-  const addCategory = (cat: Omit<Category, 'id'>) => {
-    const newCat: Category = {
-      ...cat,
-      id: `cat-${Date.now()}`,
-    };
-    setCategories((prev) => [...prev, newCat]);
-  };
-
-  const updateCategory = (cat: Category) => {
-    setCategories((prev) => prev.map((c) => (c.id === cat.id ? cat : c)));
-  };
-
-  const deleteCategory = (id: string) => {
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-  };
-
-  const addProduct = (prod: Omit<Product, 'id'>) => {
-    const newProd: Product = {
-      ...prod,
-      id: `prod-${Date.now()}`,
-    };
-    setProducts((prev) => [newProd, ...prev]);
-  };
-
-  const updateProduct = (prod: Product) => {
-    setProducts((prev) => prev.map((p) => (p.id === prod.id ? prod : p)));
-  };
-
-  const deleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-  };
-
-  // Create Order with unique confirmation code and 24h cancellation deadline
-  const createOrder = (orderData: Omit<Order, 'id' | 'orderNumber' | 'date' | 'createdAtTimestamp' | 'cancellationDeadlineTimestamp' | 'confirmationCode'>): Order => {
-    const now = Date.now();
-    const dateObj = new Date(now);
-    const formattedDate = `Aujourd'hui, ${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
-    const orderNumber = `GM-GOMA-${Math.floor(1000 + Math.random() * 9000)}`;
-    
-    // Secure 6-digit handover code (e.g. GM-7492)
-    const confirmationCode = `GM-${Math.floor(1000 + Math.random() * 9000)}`;
-    const cancellationDeadlineTimestamp = now + 24 * 60 * 60 * 1000; // 24 hours later
-
-    const newOrder: Order = {
-      ...orderData,
-      id: `order-${now}`,
-      orderNumber,
-      date: formattedDate,
-      createdAtTimestamp: now,
-      cancellationDeadlineTimestamp,
-      confirmationCode,
-      driverCurrentLocation: {
-        lat: -1.679,
-        lng: 29.224,
-        estimatedMinutesRemaining: orderData.deliverySlotName.includes('Express') ? 20 : 35,
-      },
-    };
-
-    setOrders((prev) => [newOrder, ...prev]);
-    clearCart();
-
-    logActivity(
-      'order_placed',
-      `Commande ${orderNumber} enregistrée`,
-      `Paiement Mobile Money validé automatiquement pour ${orderData.customer.quartierGoma} (${formatPrice(orderData.totalUsd)})`
-    );
-
-    return newOrder;
-  };
-
-  // 24-hour cancellation rule
-  const cancelOrder = (orderId: string, reason: string = 'Annulation demandée par le client'): boolean => {
-    const order = orders.find((o) => o.id === orderId);
-    if (!order) return false;
-
-    const now = Date.now();
-    if (order.status === 'delivered') {
-      alert("Impossible d'annuler : cette commande a déjà été réceptionnée et confirmée avec le code de remise.");
+  const mutate = async (run: () => Promise<void>, success?: string): Promise<boolean> => {
+    try {
+      await run();
+      if (success) notify(success);
+      return true;
+    } catch (e) {
+      notify(errorMessage(e), 'error');
       return false;
     }
+  };
 
-    if (now > order.cancellationDeadlineTimestamp) {
-      alert("Le délai d'annulation de 24h est dépassé pour cette commande.");
-      return false;
+  const addCategory = (cat: Omit<Category, 'id'>) =>
+    mutate(async () => {
+      const { category } = await api<{ category: Category }>('POST', '/categories', cat);
+      setCategories((prev) => [...prev, category]);
+    }, 'Rayon créé.');
+
+  const updateCategory = (cat: Category) =>
+    mutate(async () => {
+      const { category } = await api<{ category: Category }>('PUT', `/categories/${cat.id}`, cat);
+      setCategories((prev) => prev.map((c) => (c.id === category.id ? category : c)));
+    }, 'Rayon mis à jour.');
+
+  const deleteCategory = (id: string) =>
+    mutate(async () => {
+      await api('DELETE', `/categories/${id}`);
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+    }, 'Rayon supprimé.');
+
+  const addProduct = (prod: Omit<Product, 'id'>) =>
+    mutate(async () => {
+      const { product } = await api<{ product: Product }>('POST', '/products', prod);
+      setProducts((prev) => [product, ...prev]);
+    }, 'Produit publié.');
+
+  const updateProduct = (prod: Product) =>
+    mutate(async () => {
+      const { product } = await api<{ product: Product }>('PUT', `/products/${prod.id}`, prod);
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? product : p)));
+    }, 'Produit mis à jour.');
+
+  const deleteProduct = (id: string) =>
+    mutate(async () => {
+      await api('DELETE', `/products/${id}`);
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+    }, 'Produit supprimé.');
+
+  // ---------------------------------------------------------------- commandes
+
+  const applyOrder = (order: Order) => {
+    const replace = (list: Order[]) => list.map((o) => (o.id === order.id ? order : o));
+    setOrders(replace);
+    setWorkOrders(replace);
+  };
+
+  const orderAction = async (orderId: string, action: string, body?: object): Promise<Order> => {
+    try {
+      const { order } = await api<{ order: Order }>('POST', `/orders/${orderId}/${action}`, body ?? {});
+      applyOrder(order);
+      return order;
+    } finally {
+      // Qu'elle réussisse ou non (commande déjà prise par un collègue...), on se recale sur le serveur.
+      refreshOrders();
     }
-
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId
-          ? {
-              ...o,
-              status: 'cancelled',
-              cancelledAtTimestamp: now,
-              cancelReason: reason,
-            }
-          : o
-      )
-    );
-
-    logActivity(
-      'order_cancelled',
-      `Commande ${order.orderNumber} annulée`,
-      `Remboursement Mobile Money initié avec succès. Motif : ${reason}`
-    );
-
-    return true;
   };
 
-  // Secure Handover confirmation using code
-  const confirmOrderDeliveryWithCode = (orderId: string, enteredCode: string): { success: boolean; message: string } => {
-    const order = orders.find((o) => o.id === orderId);
-    if (!order) {
-      return { success: false, message: 'Commande introuvable.' };
-    }
-
-    const cleanInput = enteredCode.trim().toUpperCase();
-    const cleanActual = order.confirmationCode.trim().toUpperCase();
-
-    if (cleanInput !== cleanActual && cleanInput !== cleanActual.replace('GM-', '')) {
-      return {
-        success: false,
-        message: 'Code secret invalide ! Demandez au client le code figurant sur son reçu virtuel.',
-      };
-    }
-
-    const now = Date.now();
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId
-          ? {
-              ...o,
-              status: 'delivered',
-              deliveredAtTimestamp: now,
-              confirmedByDriver: true,
-            }
-          : o
-      )
-    );
-
-    logActivity(
-      'delivery_confirmed',
-      `Livraison ${order.orderNumber} confirmée`,
-      `Colis remis au client à Goma avec validation du code secret ${order.confirmationCode}`
-    );
-
-    return {
-      success: true,
-      message: 'Code validé ! La livraison est officiellement confirmée et clôturée.',
-    };
+  const trackOrder = (order: Order) => {
+    setOrders((prev) => (prev.some((o) => o.id === order.id) ? prev : [order, ...prev]));
+    setSelectedOrderId(order.id);
   };
 
-  const updateOrderStatus = (orderId: string, status: OrderStatus, driverId?: string) => {
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id === orderId) {
-          const updated = { ...o, status };
-          if (driverId) {
-            const driver = users.find((u) => u.id === driverId);
-            updated.deliveryDriverId = driverId;
-            updated.deliveryDriverName = driver ? driver.name : 'Livreur Gomarché Goma';
-            updated.deliveryDriverPhone = driver?.phone || '+243 998 777 888';
-          }
-          return updated;
-        }
-        return o;
-      })
-    );
-  };
-
-  const assignDriverToOrder = (orderId: string, driverId: string) => {
-    const driver = users.find((u) => u.id === driverId);
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId
-          ? {
-              ...o,
-              deliveryDriverId: driverId,
-              deliveryDriverName: driver ? driver.name : 'Livreur Gomarché Goma',
-              deliveryDriverPhone: driver?.phone || '+243 998 777 888',
-              status: o.status === 'paid' || o.status === 'preparing' ? 'in_delivery' : o.status,
-            }
-          : o
-      )
-    );
-  };
+  const selectedOrder = useMemo(
+    () => (selectedOrderId ? orders.find((o) => o.id === selectedOrderId) || workOrders.find((o) => o.id === selectedOrderId) || null : null),
+    [selectedOrderId, orders, workOrders]
+  );
 
   return (
     <AppContext.Provider
       value={{
+        ready,
         currentUser,
-        users,
         categories,
         products,
         cart,
         orders,
+        workOrders,
         siteConfig,
         currency,
         deliveryMode,
@@ -871,16 +545,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isCartOpen,
         isAuthOpen,
         isCheckoutOpen,
-        userActivities,
 
-        setCurrentUser,
         setCurrency,
         setDeliveryMode,
         setSelectedCategoryFilter,
         setSearchQuery,
-        setActiveView: handleSetActiveView,
+        setActiveView,
         setSelectedProduct,
-        setSelectedOrder,
+        setSelectedOrder: (o) => setSelectedOrderId(o ? o.id : null),
         setIsCartOpen,
         setIsAuthOpen,
         setIsCheckoutOpen,
@@ -888,6 +560,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         formatPrice,
         convertUsdToCdf,
         formatDualPrice,
+        notify,
 
         addToCart,
         removeFromCart,
@@ -898,13 +571,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         cartItemsCount,
 
         login,
+        register,
         loginWithGoogle,
         logout,
-        changeAdminPassword,
+        updateProfile,
+        homeViewFor,
 
         updateSiteConfig,
+        saveSiteConfig,
         updatePaymentGateway,
-        updateDeliverySlot,
         addCategory,
         updateCategory,
         deleteCategory,
@@ -912,18 +587,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateProduct,
         deleteProduct,
 
-        createOrder,
-        cancelOrder,
-        confirmOrderDeliveryWithCode,
-        updateOrderStatus,
-        assignDriverToOrder,
-        logActivity,
+        refreshOrders,
+        orderAction,
+        trackOrder,
 
         deferredPrompt,
         setDeferredPrompt,
       }}
     >
       {children}
+      <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-[70] flex flex-col items-center gap-2 pointer-events-none px-4 w-full max-w-md">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            role={t.kind === 'error' ? 'alert' : 'status'}
+            className={`px-4 py-3 rounded-2xl shadow-2xl text-sm font-bold text-white text-center ${
+              t.kind === 'error' ? 'bg-red-600' : 'bg-emerald-600'
+            }`}
+          >
+            {t.message}
+          </div>
+        ))}
+      </div>
     </AppContext.Provider>
   );
 };

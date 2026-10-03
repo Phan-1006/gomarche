@@ -1,23 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import {
   X,
   CheckCircle2,
-  Phone,
   MapPin,
-  User,
-  ShieldCheck,
   ArrowRight,
   Clock,
   ChevronRight,
-  Smartphone,
-  Lock,
-  Zap,
   Navigation,
+  AlertCircle,
+  Loader2,
+  Banknote,
+  Smartphone,
+  Star,
+  Store,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { PaymentMethod, Order } from '../types';
-import { GOMA_QUARTIERS } from '../data/mockData';
-import { AirtelMoneyLogo, OrangeMoneyLogo, MpesaLogo, AfriMoneyLogo } from './MobileMoneyLogos';
+import { DeliveryOption, LatLng, METHOD_TO_GATEWAY, Order, PaymentMethod, PaymentMode } from '../types';
+import { GOMA_BOUNDS, GOMA_QUARTIERS } from '../data/mockData';
+import { api, ApiError, errorMessage } from '../services/api';
+import { MethodLogo } from './MobileMoneyLogos';
+import { PaymentInstructions } from './PaymentInstructions';
+import { useBotGuard } from './BotGuard';
+
+const LiveMap = React.lazy(() => import('./LiveMap'));
+
+const METHODS: PaymentMethod[] = ['mpesa', 'airtel_money', 'orange_money', 'afrimoney'];
+const inGoma = (p: LatLng) =>
+  p.lat >= GOMA_BOUNDS.minLat && p.lat <= GOMA_BOUNDS.maxLat && p.lng >= GOMA_BOUNDS.minLng && p.lng <= GOMA_BOUNDS.maxLng;
 
 export const CheckoutModal: React.FC = () => {
   const {
@@ -25,616 +34,490 @@ export const CheckoutModal: React.FC = () => {
     setIsCheckoutOpen,
     cart,
     cartTotalUsd,
-    cartTotalCdf,
     formatPrice,
-    convertUsdToCdf,
-    currency,
+    formatDualPrice,
     currentUser,
     deliveryMode,
     siteConfig,
-    createOrder,
+    orders,
+    clearCart,
+    trackOrder,
     setActiveView,
-    setSelectedOrder,
+    setIsAuthOpen,
   } = useApp();
 
-  const [step, setStep] = useState<'info' | 'slot' | 'operator' | 'simulating_ussd' | 'success'>('info');
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('mpesa');
-  const [customerName, setCustomerName] = useState(currentUser?.name || '');
-  const [phone, setPhone] = useState(currentUser?.phone || '+243 812 000 000');
-  const [address, setAddress] = useState(currentUser?.address || 'Avenue des Lilas N° 14');
-  const [quartierGoma, setQuartierGoma] = useState(currentUser?.commune || 'Himbi');
-  const [deliveryNotes, setDeliveryNotes] = useState('Portail métallique blanc, proche du lac Kivu.');
+  const [step, setStep] = useState<'info' | 'slot' | 'payment' | 'pay'>('info');
+  const [customerName, setCustomerName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [quartierGoma, setQuartierGoma] = useState(GOMA_QUARTIERS[0]);
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [coordinates, setCoordinates] = useState<LatLng | undefined>();
+  const [showMap, setShowMap] = useState(false);
+  const [locating, setLocating] = useState(false);
 
-  // Delivery slot selection
-  const [selectedSlotId, setSelectedSlotId] = useState(siteConfig.deliverySlots[0]?.id || 'slot-express');
+  const [options, setOptions] = useState<DeliveryOption[] | null>(null);
+  const [optionKey, setOptionKey] = useState('');
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('prepaid');
+  const [method, setMethod] = useState<PaymentMethod>('mpesa');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const bot = useBotGuard();
 
-  // USSD Simulation state
-  const [ussdTimer, setUssdTimer] = useState(25);
-  const [pinCode, setPinCode] = useState('');
-  const [ussdStatus, setUssdStatus] = useState<'waiting' | 'verifying' | 'confirmed'>('waiting');
-  const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
+  const isDelivery = deliveryMode === 'delivery';
+  const enabledMethods = useMemo(
+    () => METHODS.filter((m) => siteConfig.paymentGateways[METHOD_TO_GATEWAY[m]]?.enabled),
+    [siteConfig.paymentGateways]
+  );
+
+  const loadOptions = () =>
+    api<{ options: DeliveryOption[] }>('GET', '/delivery-options')
+      .then((d) => {
+        setOptions(d.options);
+        // On garde le choix du client s'il est toujours valable, sinon on revient au créneau recommandé.
+        setOptionKey((prev) => (d.options.some((o) => o.key === prev) ? prev : d.options.find((o) => o.recommended)?.key || ''));
+      })
+      .catch(() => setOptions([]));
 
   useEffect(() => {
+    if (!isCheckoutOpen) return;
+    setStep('info');
+    setError('');
+    setCreatedOrderId(null);
     if (currentUser) {
-      if (!customerName) setCustomerName(currentUser.name);
-      if (currentUser.phone && phone === '+243 812 000 000') setPhone(currentUser.phone);
-      if (currentUser.address && address === 'Avenue des Lilas N° 14') setAddress(currentUser.address);
+      setCustomerName((v) => v || currentUser.name);
+      setPhone((v) => v || currentUser.phone || '');
+      setAddress((v) => v || currentUser.address || '');
+      if (currentUser.commune && GOMA_QUARTIERS.includes(currentUser.commune)) setQuartierGoma(currentUser.commune);
     }
-  }, [currentUser, isCheckoutOpen]);
-
-  // Selected delivery slot and fee
-  const selectedSlot = siteConfig.deliverySlots.find((s) => s.id === selectedSlotId) || siteConfig.deliverySlots[0];
-  const isFreeDelivery = cartTotalUsd >= siteConfig.freeDeliveryThresholdUsd;
-  const deliveryFeeUsd = isFreeDelivery ? 0 : (selectedSlot?.priceUsd ?? 2.5);
-  const deliveryFeeCdf = convertUsdToCdf(deliveryFeeUsd);
-  const finalTotalUsd = cartTotalUsd + deliveryFeeUsd;
-  const finalTotalCdf = cartTotalCdf + deliveryFeeCdf;
-
-  // Countdown timer
-  useEffect(() => {
-    let interval: any;
-    if (step === 'simulating_ussd' && ussdStatus === 'waiting' && ussdTimer > 0) {
-      interval = setInterval(() => {
-        setUssdTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (ussdTimer === 0 && ussdStatus === 'waiting') {
-      handleConfirmPin();
-    }
+    loadOptions();
+    // Les créneaux dépendent de l'heure : on les rafraîchit tant que la fenêtre reste ouverte.
+    const interval = setInterval(loadOptions, 60_000);
     return () => clearInterval(interval);
-  }, [step, ussdTimer, ussdStatus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCheckoutOpen, currentUser?.id]);
+
+  useEffect(() => {
+    if (!enabledMethods.includes(method) && enabledMethods[0]) setMethod(enabledMethods[0]);
+  }, [enabledMethods, method]);
 
   if (!isCheckoutOpen) return null;
 
-  const gateways = siteConfig.paymentGateways || {} as any;
+  const handleClose = () => setIsCheckoutOpen(false);
+  const primary = siteConfig.primaryColor || '#E2001A';
+  const createdOrder: Order | undefined = orders.find((o) => o.id === createdOrderId);
 
-  const operatorInfo = {
-    airtel_money: {
-      name: gateways.airtel?.displayName || 'Airtel Money RDC (Goma)',
-      color: '#E40000',
-      prefix: gateways.airtel?.phonePrefix || '097, 099, 098',
-      logo: <AirtelMoneyLogo size="md" customLogoUrl={gateways.airtel?.customLogoUrl} />,
-    },
-    orange_money: {
-      name: gateways.orange?.displayName || 'Orange Money RDC (Goma)',
-      color: '#FF6600',
-      prefix: gateways.orange?.phonePrefix || '084, 085, 089',
-      logo: <OrangeMoneyLogo size="md" customLogoUrl={gateways.orange?.customLogoUrl} />,
-    },
-    mpesa: {
-      name: gateways.mpesa?.displayName || 'Vodacom M-Pesa (Goma)',
-      color: '#00A859',
-      prefix: gateways.mpesa?.phonePrefix || '081, 082, 083',
-      logo: <MpesaLogo size="md" customLogoUrl={gateways.mpesa?.customLogoUrl} />,
-    },
-    afrimoney: {
-      name: gateways.afrimoney?.displayName || 'Africell AfriMoney (Goma)',
-      color: '#6C207E',
-      prefix: gateways.afrimoney?.phonePrefix || '090, 091',
-      logo: <AfriMoneyLogo size="md" customLogoUrl={gateways.afrimoney?.customLogoUrl} />,
-    },
-  }[selectedMethod];
+  const option = options?.find((o) => o.key === optionKey);
+  const isFreeDelivery = cartTotalUsd >= siteConfig.freeDeliveryThresholdUsd;
+  const deliveryFeeUsd = !isDelivery || isFreeDelivery ? 0 : option?.priceUsd ?? 0;
+  const totalUsd = Math.round((cartTotalUsd + deliveryFeeUsd) * 100) / 100;
+  const depositUsd = Math.round(Math.min(totalUsd, Math.max(isDelivery ? option?.priceUsd ?? 0 : 0, 1)) * 100) / 100;
+  const optionsByDay = (options || []).reduce<Record<string, DeliveryOption[]>>((acc, o) => {
+    (acc[o.dayLabel] ||= []).push(o);
+    return acc;
+  }, {});
 
-  const handleStartPayment = () => {
-    setUssdTimer(25);
-    setPinCode('');
-    setUssdStatus('waiting');
-    setStep('simulating_ussd');
+  const useMyPosition = () => {
+    if (!navigator.geolocation) return setError('La géolocalisation n’est pas disponible sur cet appareil.');
+    setLocating(true);
+    setError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        if (!inGoma(p)) return setError('Votre position actuelle est en dehors de Goma. Placez le point de livraison sur la carte.');
+        setCoordinates(p);
+        setShowMap(true);
+      },
+      () => {
+        setLocating(false);
+        setShowMap(true);
+        setError('Position GPS indisponible : autorisez la localisation ou placez le point sur la carte.');
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
   };
 
-  const handleConfirmPin = () => {
-    setUssdStatus('verifying');
-    // Automatic instant validation via Mobile Money API
-    setTimeout(() => {
-      setUssdStatus('confirmed');
+  const validateInfo = () => {
+    if (customerName.trim().length < 2) return 'Indiquez le nom du destinataire.';
+    if (phone.replace(/\D/g, '').length < 9) return 'Indiquez un numéro de téléphone valide (+243...).';
+    if (isDelivery && address.trim().length < 5) return 'Indiquez l’avenue, le numéro et un repère.';
+    return '';
+  };
 
-      const prefix = {
-        airtel_money: 'AIRTEL-GOMA',
-        orange_money: 'OM-GOMA',
-        mpesa: 'MPESA-GOMA',
-        afrimoney: 'AFRI-GOMA',
-      }[selectedMethod];
-
-      const ref = `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
-
-      const newOrder = createOrder({
-        customer: {
-          name: customerName || 'Client Gomarché',
-          email: currentUser?.email || 'client@gomarche.cd',
-          phone: phone || '+243 812 000 000',
-          address: address || 'Goma',
-          quartierGoma: quartierGoma || 'Himbi',
-          city: 'Goma',
-          deliveryNotes,
-        },
-        items: [...cart],
-        subtotalUsd: cartTotalUsd,
-        subtotalCdf: cartTotalCdf,
-        deliveryFeeUsd,
-        deliveryFeeCdf,
-        totalUsd: finalTotalUsd,
-        totalCdf: finalTotalCdf,
-        paymentMethod: selectedMethod,
-        paymentStatus: 'completed',
-        transactionRef: ref,
-        status: 'paid',
+  const placeOrder = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      const { order } = await api<{ order: Order }>('POST', '/orders', {
+        items: cart.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
+        customer: { name: customerName, phone, address, quartierGoma, deliveryNotes, coordinates: isDelivery ? coordinates : undefined },
         deliveryMode,
-        deliverySlotId: selectedSlot.id,
-        deliverySlotName: `${selectedSlot.label} (${selectedSlot.timeRange})`,
-        loyaltyPointsEarned: Math.round(finalTotalUsd),
+        optionKey,
+        paymentMode,
+        paymentMethod: method,
+        ...bot.fields,
       });
-
-      setCompletedOrder(newOrder);
-      setStep('success');
-    }, 1200);
+      trackOrder(order);
+      setCreatedOrderId(order.id);
+      clearCart();
+      setStep('pay');
+    } catch (e) {
+      setError(errorMessage(e));
+      bot.reset();
+      if (e instanceof ApiError && e.code === 'slot_unavailable') {
+        await loadOptions();
+        setStep('slot');
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleClose = () => {
-    setIsCheckoutOpen(false);
-    setStep('info');
-  };
+  const ErrorBox = error ? (
+    <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-xs text-red-700 font-bold">
+      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+      <span>{error}</span>
+    </div>
+  ) : null;
+
+  const stepClass = (active: boolean) => `font-bold ${active ? 'text-[#E2001A]' : 'text-gray-500'}`;
+  const inputClass = 'w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:border-[#E2001A]';
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden border border-gray-100 flex flex-col max-h-[92vh]">
-        {/* Top Header */}
+      <div role="dialog" aria-modal="true" aria-label="Validation de la commande" className="bg-white rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden border border-gray-100 flex flex-col max-h-[92vh]">
         <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-xl"
-              style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
-            >
-              G
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h2 className="text-base font-black text-gray-900">
-                  Validation Commande & Paiement
-                </h2>
-                <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
-                  Goma
-                </span>
-              </div>
-              <p className="text-xs text-gray-500">
-                Service exclusif Ville de Goma • Suivi GPS & Reçu Sécurisé
-              </p>
-            </div>
+          <div>
+            <h2 className="text-base font-black text-gray-900">Validation de la commande</h2>
+            <p className="text-xs text-gray-500">
+              {isDelivery ? 'Livraison à domicile à Goma' : 'Retrait au magasin'} • suivi en direct
+            </p>
           </div>
-
-          <button
-            type="button"
-            onClick={handleClose}
-            className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-          >
+          <button type="button" aria-label="Fermer" onClick={handleClose} className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Steps indicator */}
         <div className="px-5 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-xs">
-          <span className={`font-bold ${step === 'info' ? 'text-[#E2001A]' : 'text-gray-600'}`}>
-            1. Adresse Goma
-          </span>
+          <span className={stepClass(step === 'info')}>1. {isDelivery ? 'Adresse' : 'Contact'}</span>
           <ChevronRight className="w-4 h-4 text-gray-300" />
-          <span className={`font-bold ${step === 'slot' ? 'text-[#E2001A]' : 'text-gray-600'}`}>
-            2. Créneau & Frais
-          </span>
+          <span className={stepClass(step === 'slot')}>2. Heure</span>
           <ChevronRight className="w-4 h-4 text-gray-300" />
-          <span className={`font-bold ${step === 'operator' || step === 'simulating_ussd' ? 'text-[#E2001A]' : 'text-gray-600'}`}>
-            3. Mobile Money
-          </span>
+          <span className={stepClass(step === 'payment' || step === 'pay')}>3. Paiement</span>
         </div>
 
-        {/* Step 1: Destination in Goma */}
-        {step === 'info' && (
-          <div className="p-6 overflow-y-auto space-y-4">
-            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-600 font-medium">Panier Articles :</p>
-                <p className="text-xl font-black text-gray-900">
-                  {formatPrice(cartTotalUsd)}
-                </p>
-                <p className="text-xs text-gray-500">
-                  soit {currency === 'USD' ? `${cartTotalCdf.toLocaleString('fr-FR')} FC` : `$ ${cartTotalUsd.toFixed(2)}`}
-                </p>
-              </div>
-              <span className="text-xs font-bold text-gray-700 bg-white px-3 py-1.5 rounded-xl border border-gray-200">
-                {cart.length} référence{cart.length > 1 ? 's' : ''}
-              </span>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                Nom complet du destinataire *
-              </label>
-              <input
-                type="text"
-                required
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:border-[#E2001A]"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Ex: Mireille Tshimanga"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                Numéro Mobile Money (+243) pour notification push *
-              </label>
-              <input
-                type="text"
-                required
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:border-[#E2001A]"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+243 812 345 678"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Quartier de Goma *
-                </label>
-                <select
-                  aria-label="Sélectionner le quartier de Goma"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:border-[#E2001A] bg-white font-bold"
-                  value={quartierGoma}
-                  onChange={(e) => setQuartierGoma(e.target.value)}
-                >
-                  {GOMA_QUARTIERS.map((q) => (
-                    <option key={q} value={q}>
-                      {q}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Ville (Exclusivité)
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value="Goma (Nord-Kivu)"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-100 font-bold text-gray-700 cursor-not-allowed"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                Avenue, Numéro et repère exact à Goma *
-              </label>
-              <input
-                type="text"
-                required
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:border-[#E2001A]"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Ex: Avenue des Lilas N° 14, vers le lac Kivu"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                Instructions pour le coursier moto
-              </label>
-              <input
-                type="text"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:border-[#E2001A]"
-                value={deliveryNotes}
-                onChange={(e) => setDeliveryNotes(e.target.value)}
-                placeholder="Couleur du portail, sonnette, repère..."
-              />
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setStep('slot')}
-                className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-transform transform active:scale-95"
-                style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
-              >
-                <span>Choisir l'horaire de livraison & frais</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+        {!currentUser ? (
+          <div className="p-8 text-center space-y-4">
+            <p className="text-sm text-gray-700">
+              Connectez-vous pour commander : votre compte permet de suivre votre livreur et de retrouver votre commande sur tous vos appareils.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsAuthOpen(true)}
+              className="px-6 py-3 rounded-2xl text-white font-bold text-sm"
+              style={{ backgroundColor: primary }}
+            >
+              Se connecter ou créer un compte
+            </button>
           </div>
-        )}
+        ) : (
+          <>
+            {step === 'info' && (
+              <div className="p-6 overflow-y-auto space-y-4">
+                <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-600 font-medium">Panier :</p>
+                    <p className="text-xl font-black text-gray-900">{formatDualPrice(cartTotalUsd).primary}</p>
+                    <p className="text-xs text-gray-500">soit {formatDualPrice(cartTotalUsd).secondary}</p>
+                  </div>
+                  <span className="text-xs font-bold text-gray-700 bg-white px-3 py-1.5 rounded-xl border border-gray-200">
+                    {cart.length} référence{cart.length > 1 ? 's' : ''}
+                  </span>
+                </div>
 
-        {/* Step 2: Delivery Slot & Fee (Calculated and added to total) */}
-        {step === 'slot' && (
-          <div className="p-6 overflow-y-auto space-y-4">
-            <div>
-              <h3 className="text-sm font-black text-gray-900">
-                Sélectionnez votre créneau de livraison à Goma
-              </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Les frais sont fixés selon l'urgence et s'additionnent à votre panier.
-              </p>
-            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="co-name" className="block text-xs font-bold text-gray-700 mb-1">Nom du destinataire *</label>
+                    <input id="co-name" type="text" autoComplete="name" className={inputClass} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label htmlFor="co-phone" className="block text-xs font-bold text-gray-700 mb-1">Téléphone joignable *</label>
+                    <input id="co-phone" type="tel" inputMode="tel" autoComplete="tel" className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+243 8XX XXX XXX" />
+                  </div>
+                </div>
 
-            {/* List of Time Slots */}
-            <div className="space-y-2.5">
-              {siteConfig.deliverySlots.map((slot) => {
-                const isSelected = selectedSlotId === slot.id;
-                return (
-                  <div
-                    key={slot.id}
-                    onClick={() => setSelectedSlotId(slot.id)}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
-                      isSelected
-                        ? 'border-[#E2001A] bg-red-50/40 shadow-md ring-2 ring-red-100'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="delivery_slot"
-                        checked={isSelected}
-                        onChange={() => setSelectedSlotId(slot.id)}
-                        className="accent-[#E2001A] w-4 h-4"
-                      />
+                {isDelivery ? (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-gray-900">{slot.label}</span>
-                          {slot.isExpress && (
-                            <span className="text-[10px] bg-red-600 text-white font-black px-2 py-0.5 rounded-full uppercase">
-                              Prioritaire
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs text-gray-500">{slot.timeRange}</span>
+                        <label htmlFor="co-quartier" className="block text-xs font-bold text-gray-700 mb-1">Quartier de Goma *</label>
+                        <select id="co-quartier" className={`${inputClass} bg-white font-bold`} value={quartierGoma} onChange={(e) => setQuartierGoma(e.target.value)}>
+                          {GOMA_QUARTIERS.map((q) => (
+                            <option key={q} value={q}>{q}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="co-address" className="block text-xs font-bold text-gray-700 mb-1">Avenue, numéro *</label>
+                        <input id="co-address" type="text" autoComplete="street-address" className={inputClass} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Ex : Avenue des Lilas n° 14" />
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <span className="text-sm font-black text-gray-900 block">
-                        + {formatPrice(slot.priceUsd)}
-                      </span>
-                      <span className="text-[10px] text-gray-500">
-                        {convertUsdToCdf(slot.priceUsd).toLocaleString('fr-FR')} FC
-                      </span>
+                    <div>
+                      <label htmlFor="co-notes" className="block text-xs font-bold text-gray-700 mb-1">Repère pour le livreur</label>
+                      <input id="co-notes" type="text" className={inputClass} value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} placeholder="Couleur du portail, bâtiment voisin..." />
                     </div>
-                  </div>
-                );
-              })}
-            </div>
 
-            {/* Pricing Recap Box */}
-            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200 space-y-1.5 text-xs">
-              <div className="flex items-center justify-between text-gray-600">
-                <span>Sous-total articles :</span>
-                <span className="font-bold text-gray-900">{formatPrice(cartTotalUsd)}</span>
-              </div>
-              <div className="flex items-center justify-between text-gray-600">
-                <span>Frais de livraison Goma ({selectedSlot.label}) :</span>
-                <span className="font-black text-emerald-700">
-                  + {formatPrice(deliveryFeeUsd)}
-                </span>
-              </div>
-              <div className="pt-2 border-t border-gray-200 flex items-baseline justify-between text-sm">
-                <span className="font-black text-gray-900">Total à payer :</span>
-                <span className="font-black text-base text-[#E2001A]">
-                  {formatPrice(finalTotalUsd)} ({currency === 'USD' ? `${finalTotalCdf.toLocaleString('fr-FR')} FC` : `$ ${finalTotalUsd.toFixed(2)}`})
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setStep('info')}
-                className="py-3 px-4 rounded-xl border border-gray-300 font-bold text-xs text-gray-700 hover:bg-gray-100"
-              >
-                Retour
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep('operator')}
-                className="flex-1 py-3 px-4 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg"
-                style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
-              >
-                <span>Choisir l'opérateur Mobile Money</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Choose Mobile Money Operator */}
-        {step === 'operator' && (
-          <div className="p-6 overflow-y-auto space-y-4">
-            <p className="text-xs text-gray-600">
-              Sélectionnez votre compte Mobile Money pour valider automatiquement la transaction :
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {(['mpesa', 'airtel_money', 'orange_money', 'afrimoney'] as PaymentMethod[]).map((method) => {
-                const isSelected = selectedMethod === method;
-                return (
-                  <div
-                    key={method}
-                    onClick={() => setSelectedMethod(method)}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
-                      isSelected
-                        ? 'border-gray-900 bg-gray-50 shadow-md ring-2 ring-gray-900'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="method"
-                        checked={isSelected}
-                        onChange={() => setSelectedMethod(method)}
-                        className="accent-red-600"
-                      />
-                      {method === 'airtel_money' && <AirtelMoneyLogo size="sm" customLogoUrl={gateways.airtel?.customLogoUrl} />}
-                      {method === 'orange_money' && <OrangeMoneyLogo size="sm" customLogoUrl={gateways.orange?.customLogoUrl} />}
-                      {method === 'mpesa' && <MpesaLogo size="sm" customLogoUrl={gateways.mpesa?.customLogoUrl} />}
-                      {method === 'afrimoney' && <AfriMoneyLogo size="sm" customLogoUrl={gateways.afrimoney?.customLogoUrl} />}
+                    <div className="rounded-2xl border border-gray-200 p-3 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs">
+                          <MapPin className="w-4 h-4 text-[#E2001A]" />
+                          <span className="font-bold text-gray-900">
+                            {coordinates ? 'Point de livraison placé sur la carte' : 'Position exacte (recommandé)'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={useMyPosition} disabled={locating} className="px-3 py-1.5 rounded-xl bg-gray-900 text-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-60">
+                            {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5 text-emerald-400" />}
+                            <span>Ma position</span>
+                          </button>
+                          <button type="button" onClick={() => setShowMap((v) => !v)} className="px-3 py-1.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700">
+                            {showMap ? 'Masquer la carte' : 'Choisir sur la carte'}
+                          </button>
+                        </div>
+                      </div>
+                      {showMap && (
+                        <Suspense fallback={<div className="h-56 rounded-2xl bg-gray-100 animate-pulse" />}>
+                          <LiveMap
+                            store={siteConfig.storeLocation}
+                            destination={coordinates}
+                            onPick={(p) => (inGoma(p) ? setCoordinates(p) : setError('Ce point est en dehors de la zone de livraison de Goma.'))}
+                            className="h-56 w-full rounded-2xl overflow-hidden border border-gray-200 z-0"
+                          />
+                          <p className="text-[11px] text-gray-500">Touchez la carte à l’endroit exact de la livraison : le livreur y sera guidé.</p>
+                        </Suspense>
+                      )}
                     </div>
+                  </>
+                ) : (
+                  <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4 flex items-start gap-3 text-xs text-gray-700">
+                    <Store className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" />
+                    <span>
+                      Retrait au magasin : <strong>{siteConfig.storeAddress}</strong>. Présentez votre code de retrait au comptoir.
+                    </span>
                   </div>
-                );
-              })}
-            </div>
+                )}
 
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-xs space-y-1">
-              <div className="flex items-center justify-between text-gray-600">
-                <span>Numéro client :</span>
-                <span className="font-bold text-gray-900">{phone}</span>
+                {ErrorBox}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const problem = validateInfo();
+                    setError(problem);
+                    if (!problem) setStep('slot');
+                  }}
+                  className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg"
+                  style={{ backgroundColor: primary }}
+                >
+                  <span>Choisir l’heure {isDelivery ? 'de livraison' : 'de retrait'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
-              <div className="flex items-center justify-between text-gray-600">
-                <span>Créneau :</span>
-                <span className="font-bold text-gray-900">{selectedSlot.label}</span>
-              </div>
-              <div className="flex items-center justify-between text-gray-900 font-bold pt-1 border-t border-gray-200">
-                <span>Montant total :</span>
-                <span className="text-emerald-700 font-black">{formatPrice(finalTotalUsd)}</span>
-              </div>
-            </div>
+            )}
 
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setStep('slot')}
-                className="py-3 px-4 rounded-xl border border-gray-300 font-bold text-xs text-gray-700 hover:bg-gray-100"
-              >
-                Retour
-              </button>
-              <button
-                type="button"
-                onClick={handleStartPayment}
-                className="flex-1 py-3 px-4 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg"
-                style={{ backgroundColor: operatorInfo.color }}
-              >
-                <span>Valider le débit avec {operatorInfo.name}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+            {step === 'slot' && (
+              <div className="p-6 overflow-y-auto space-y-4">
+                <div>
+                  <h3 className="text-sm font-black text-gray-900">Quand souhaitez-vous {isDelivery ? 'être livré' : 'retirer vos courses'} ?</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Service de {siteConfig.deliveryHours.start.replace(':', 'h')} à {siteConfig.deliveryHours.end.replace(':', 'h')} (heure de Goma). Seules les heures à venir sont proposées.
+                  </p>
+                </div>
 
-        {/* Step 4: USSD Push Phone Simulation */}
-        {step === 'simulating_ussd' && (
-          <div className="p-6 overflow-y-auto text-center space-y-5">
-            <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 border-2 border-amber-300 flex items-center justify-center text-amber-600 animate-pulse">
-              <Smartphone className="w-8 h-8" />
-            </div>
-
-            <div>
-              <h3 className="text-lg font-black text-gray-900">
-                Notification Push Envoyée à Goma
-              </h3>
-              <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
-                Veuillez confirmer le débit de <span className="font-black text-gray-900">{formatPrice(finalTotalUsd)}</span> sur votre téléphone ({phone}).
-              </p>
-            </div>
-
-            {/* Mobile Push Simulator */}
-            <div className="max-w-xs mx-auto bg-gray-900 text-white rounded-3xl p-5 shadow-2xl border-4 border-gray-800 text-left">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-800 text-[10px] text-gray-400">
-                <span><span translate="no" className="notranslate">Gomarché</span> Goma Gateway</span>
-                <span>{ussdTimer}s</span>
-              </div>
-              <p className="text-xs text-amber-300 font-bold mt-2">
-                Paiement Mobile Money automatique :
-              </p>
-              <p className="text-xs text-gray-300 mt-1">
-                Entrez votre code PIN secret pour confirmer la commande.
-              </p>
-
-              <div className="mt-3 flex justify-center gap-2">
-                {[0, 1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className={`w-9 h-10 rounded-lg border flex items-center justify-center text-lg font-black ${
-                      pinCode.length > i
-                        ? 'border-emerald-400 bg-emerald-950/60 text-emerald-400'
-                        : 'border-gray-700 bg-gray-800 text-gray-500'
-                    }`}
-                  >
-                    {pinCode.length > i ? '●' : ''}
+                {options === null && <div className="h-40 rounded-2xl bg-gray-100 animate-pulse" />}
+                {options?.length === 0 && (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-bold">
+                    Aucun créneau n’est ouvert pour le moment. Réessayez un peu plus tard ou appelez le magasin au {siteConfig.storePhone}.
                   </div>
+                )}
+
+                {Object.entries(optionsByDay).map(([day, list]) => (
+                  <fieldset key={day} className="space-y-2">
+                    <legend className="text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">{day}</legend>
+                    {list.map((o) => {
+                      const selected = optionKey === o.key;
+                      return (
+                        <label
+                          key={o.key}
+                          className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                            selected ? 'border-[#E2001A] bg-red-50/40 ring-2 ring-red-100' : 'border-gray-200 hover:border-gray-300 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <input type="radio" name="delivery_option" checked={selected} onChange={() => setOptionKey(o.key)} className="accent-[#E2001A] w-4 h-4 shrink-0" />
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-sm font-bold text-gray-900">{o.label}</span>
+                                {o.recommended && (
+                                  <span className="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full uppercase flex items-center gap-1">
+                                    <Star className="w-3 h-3 fill-white" /> Recommandé
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-xs text-gray-500 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {o.isExpress
+                                  ? `Dans environ ${siteConfig.deliveryHours.expressMinutes} min (vers ${o.endTime.replace(':', 'h')})`
+                                  : `Entre ${o.startTime.replace(':', 'h')} et ${o.endTime.replace(':', 'h')}`}
+                              </span>
+                            </div>
+                          </div>
+                          {isDelivery && (
+                            <span className="text-sm font-black text-gray-900 shrink-0">
+                              {isFreeDelivery ? 'Offerte' : `+ ${formatPrice(o.priceUsd)}`}
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </fieldset>
                 ))}
+
+                {ErrorBox}
+
+                <div className="flex items-center gap-3 pt-1">
+                  <button type="button" onClick={() => setStep('info')} className="py-3 px-4 rounded-xl border border-gray-300 font-bold text-xs text-gray-700 hover:bg-gray-100">
+                    Retour
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!option}
+                    onClick={() => {
+                      setError('');
+                      setStep('payment');
+                    }}
+                    className="flex-1 py-3 px-4 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                    style={{ backgroundColor: primary }}
+                  >
+                    <span>Continuer vers le paiement</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
+            )}
 
-              <button
-                type="button"
-                onClick={() => {
-                  setPinCode('1234');
-                  setTimeout(() => handleConfirmPin(), 300);
-                }}
-                className="w-full mt-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{ussdStatus === 'verifying' ? 'Validation via API...' : 'Valider mon PIN sur mobile'}</span>
-              </button>
-            </div>
-          </div>
-        )}
+            {step === 'payment' && option && (
+              <div className="p-6 overflow-y-auto space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className={`p-4 rounded-2xl border-2 cursor-pointer ${paymentMode === 'prepaid' ? 'border-gray-900 bg-gray-50' : 'border-gray-200'}`}>
+                    <input type="radio" name="payment_mode" className="sr-only" checked={paymentMode === 'prepaid'} onChange={() => setPaymentMode('prepaid')} />
+                    <span className="flex items-center gap-2 text-sm font-black text-gray-900">
+                      <Smartphone className="w-4 h-4" /> Payer maintenant
+                    </span>
+                    <span className="block text-xs text-gray-500 mt-1">Tout régler par Mobile Money : {formatPrice(totalUsd)}</span>
+                  </label>
+                  {siteConfig.codEnabled && (
+                    <label className={`p-4 rounded-2xl border-2 cursor-pointer ${paymentMode === 'cod' ? 'border-gray-900 bg-gray-50' : 'border-gray-200'}`}>
+                      <input type="radio" name="payment_mode" className="sr-only" checked={paymentMode === 'cod'} onChange={() => setPaymentMode('cod')} />
+                      <span className="flex items-center gap-2 text-sm font-black text-gray-900">
+                        <Banknote className="w-4 h-4" /> Payer à la {isDelivery ? 'livraison' : 'réception'}
+                      </span>
+                      <span className="block text-xs text-gray-500 mt-1">
+                        Garantie de {formatPrice(depositUsd)} maintenant, solde de {formatPrice(totalUsd - depositUsd)} en espèces à la remise.
+                      </span>
+                    </label>
+                  )}
+                </div>
 
-        {/* Step 5: Success & Access to Virtual Receipt / GPS Tracking */}
-        {step === 'success' && completedOrder && (
-          <div className="p-6 overflow-y-auto space-y-5 text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
-              <CheckCircle2 className="w-10 h-10" />
-            </div>
+                <fieldset>
+                  <legend className="text-xs font-bold text-gray-700 mb-2">
+                    Opérateur Mobile Money pour {paymentMode === 'cod' ? 'la garantie' : 'le paiement'} :
+                  </legend>
+                  <div className="grid grid-cols-2 gap-3">
+                    {enabledMethods.map((m) => (
+                      <label key={m} className={`p-3 rounded-2xl border-2 cursor-pointer flex items-center gap-2 ${method === m ? 'border-gray-900 bg-gray-50 ring-2 ring-gray-900' : 'border-gray-200 hover:border-gray-300'}`}>
+                        <input type="radio" name="method" checked={method === m} onChange={() => setMethod(m)} className="accent-red-600" />
+                        <MethodLogo method={m} gateways={siteConfig.paymentGateways} />
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
 
-            <div>
-              <span className="text-[11px] font-black uppercase text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">
-                Paiement Validé Automatiquement via API
-              </span>
-              <h3 className="text-xl font-black text-gray-900 mt-2">
-                Commande Confirmée à Goma !
-              </h3>
-              <p className="text-xs text-gray-500 mt-1">
-                Votre reçu virtuel a été généré avec votre Code Secret de Réception.
-              </p>
-            </div>
+                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between text-gray-600">
+                    <span>Articles :</span>
+                    <span className="font-bold text-gray-900">{formatPrice(cartTotalUsd)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-gray-600">
+                    <span>{isDelivery ? 'Livraison' : 'Retrait'} • {option.dayLabel}, {option.label} :</span>
+                    <span className="font-bold text-gray-900">{deliveryFeeUsd === 0 ? 'Gratuit' : `+ ${formatPrice(deliveryFeeUsd)}`}</span>
+                  </div>
+                  <div className="pt-2 border-t border-gray-200 flex items-baseline justify-between text-sm">
+                    <span className="font-black text-gray-900">Total :</span>
+                    <span className="font-black text-base text-[#E2001A]">
+                      {formatDualPrice(totalUsd).primary} <span className="text-xs text-gray-500">({formatDualPrice(totalUsd).secondary})</span>
+                    </span>
+                  </div>
+                  {paymentMode === 'cod' && (
+                    <div className="flex items-center justify-between text-emerald-800 font-bold pt-1">
+                      <span>À régler maintenant (garantie) :</span>
+                      <span>{formatPrice(depositUsd)}</span>
+                    </div>
+                  )}
+                </div>
 
-            {/* Secret Code Card */}
-            <div className="bg-amber-50 rounded-2xl p-4 border border-amber-200 text-center">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 block mb-1">
-                Votre Code Secret de Confirmation :
-              </span>
-              <span className="font-mono text-3xl font-black text-gray-900 tracking-widest">
-                {completedOrder.confirmationCode}
-              </span>
-              <p className="text-[11px] text-gray-600 mt-1">
-                Présentez ce code au coursier à Goma pour valider la livraison.
-              </p>
-            </div>
+                {bot.element}
+                {ErrorBox}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedOrder(completedOrder);
-                  setActiveView('orders');
-                  handleClose();
-                }}
-                className="py-3 px-4 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md"
-              >
-                <Navigation className="w-4 h-4 text-emerald-400" />
-                <span>Voir mon Reçu & Tracé GPS</span>
-              </button>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => setStep('slot')} className="py-3 px-4 rounded-xl border border-gray-300 font-bold text-xs text-gray-700 hover:bg-gray-100">
+                    Retour
+                  </button>
+                  <button
+                    type="button"
+                    onClick={placeOrder}
+                    disabled={busy || cart.length === 0 || bot.pending}
+                    className="flex-1 py-3 px-4 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-60"
+                    style={{ backgroundColor: primary }}
+                  >
+                    {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    <span>Confirmer la commande</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveView('home');
-                  handleClose();
-                }}
-                className="py-3 px-4 rounded-xl border border-gray-300 hover:bg-gray-100 font-bold text-xs text-gray-700"
-              >
-                Retour aux rayons
-              </button>
-            </div>
-          </div>
+            {step === 'pay' && createdOrder && (
+              <div className="p-6 overflow-y-auto space-y-4">
+                <div className="text-center">
+                  <h3 className="text-lg font-black text-gray-900">Commande {createdOrder.orderNumber} enregistrée</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {createdOrder.status === 'awaiting_payment'
+                      ? 'Dernière étape : réglez par Mobile Money pour lancer la préparation.'
+                      : 'Paiement validé : la préparation peut commencer.'}
+                  </p>
+                </div>
+
+                <PaymentInstructions order={createdOrder} />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackOrder(createdOrder);
+                    setActiveView('orders');
+                    handleClose();
+                  }}
+                  className="w-full py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs flex items-center justify-center gap-2"
+                >
+                  <Navigation className="w-4 h-4 text-emerald-400" />
+                  <span>Suivre ma commande</span>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
