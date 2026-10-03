@@ -27,7 +27,7 @@ class ErrorBoundary extends React.Component<
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', padding: '1.5rem', fontFamily: 'system-ui, sans-serif' }}>
           <div style={{ maxWidth: '480px', width: '100%', background: '#FFFFFF', padding: '2rem', borderRadius: '1.5rem', border: '1px solid #E5E7EB', textAlign: 'center', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: '#FEE2E2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto', fontSize: '1.5rem', fontWeight: 900 }}>!</div>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 900, color: '#111827', margin: '0 0 0.5rem 0' }}>Gomarché Goma</h2>
+            <h2 className="notranslate" translate="no" style={{ fontSize: '1.125rem', fontWeight: 900, color: '#111827', margin: '0 0 0.5rem 0' }}>Gomarché Goma</h2>
             <p style={{ fontSize: '0.875rem', color: '#4B5563', margin: '0 0 1.5rem 0' }}>Une mise à jour a été appliquée. Cliquez ci-dessous pour recharger l'application.</p>
             <button
               onClick={() => {
@@ -36,7 +36,7 @@ class ErrorBoundary extends React.Component<
               }}
               style={{ width: '100%', padding: '0.75rem 1rem', background: '#E2001A', color: '#FFFFFF', border: 'none', borderRadius: '0.75rem', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer' }}
             >
-              Recharger Gomarché
+              Recharger <span className="notranslate" translate="no">Gomarché</span>
             </button>
           </div>
         </div>

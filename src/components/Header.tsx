@@ -220,7 +220,7 @@ export const Header: React.FC = () => {
             />
           ) : (
             <div className="flex items-center gap-2 sm:gap-3.5">
-              {/* Distinctive Hypermarket Emblem */}
+              {/* Distinctive Supermarket Emblem */}
               <div
                 className="w-9 h-9 sm:w-14 sm:h-14 md:w-18 md:h-18 rounded-xl sm:rounded-2xl md:rounded-3xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105 border-2 border-white/60 shrink-0"
                 style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
@@ -381,7 +381,7 @@ export const Header: React.FC = () => {
                           {isSuperAdmin && '👑 Administrateur'}
                           {isAgent && '🏷️ Agent de Rayon'}
                           {isDriver && '🛵 Livreur Goma'}
-                          {!isSuperAdmin && !isAgent && !isDriver && '🛒 Client Gomarché'}
+                          {!isSuperAdmin && !isAgent && !isDriver && <>🛒 Client <span translate="no" className="notranslate">Gomarché</span></>}
                         </span>
                         <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                           {currentUser.loyaltyPoints} pts
@@ -402,7 +402,7 @@ export const Header: React.FC = () => {
                         >
                           <span className="flex items-center gap-2">
                             <ShieldCheck className="w-4 h-4" />
-                            <span>Pannel Super Admin Gomarché</span>
+                            <span>Pannel Super Admin <span translate="no" className="notranslate">Gomarché</span></span>
                           </span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
@@ -554,7 +554,7 @@ export const Header: React.FC = () => {
               className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 transition-colors shrink-0"
             >
               <Menu className="w-4 h-4" />
-              <span>Rayons Gomarché Goma</span>
+              <span>Rayons <span translate="no" className="notranslate">Gomarché</span> Goma</span>
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
 
@@ -634,16 +634,24 @@ export const Header: React.FC = () => {
           <div className="w-4/5 max-w-sm bg-white h-full overflow-y-auto p-5 flex flex-col justify-between shadow-2xl">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl"
-                    style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
-                  >
-                    G
-                  </div>
+                <div className="flex items-center gap-2.5">
+                  {siteConfig.customLogoUrl ? (
+                    <img
+                      src={siteConfig.customLogoUrl}
+                      alt={siteConfig.siteName}
+                      className="h-10 max-w-[120px] object-contain rounded-xl"
+                    />
+                  ) : (
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl"
+                      style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
+                    >
+                      G
+                    </div>
+                  )}
                   <div>
-                    <span className="font-black text-xl text-gray-900 block leading-tight">Gomarché</span>
-                    <span className="text-[10px] font-bold text-emerald-600 uppercase">Exclusif Ville de Goma</span>
+                    <span translate="no" className="notranslate font-black text-xl text-gray-900 block leading-tight">Gomarché</span>
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase">Supermarché Goma</span>
                   </div>
                 </div>
                 <button

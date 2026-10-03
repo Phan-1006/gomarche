@@ -33,14 +33,24 @@ export const CartDrawer: React.FC = () => {
         {/* Header */}
         <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
-              style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
-            >
-              <ShoppingBag className="w-4 h-4" />
-            </div>
+            {siteConfig.customLogoUrl ? (
+              <img
+                src={siteConfig.customLogoUrl}
+                alt="Logo"
+                className="h-8 max-w-[80px] object-contain rounded-lg p-0.5"
+              />
+            ) : (
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
+                style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
+              >
+                <ShoppingBag className="w-4 h-4" />
+              </div>
+            )}
             <div>
-              <h2 className="text-base font-black text-gray-900">Mon Panier Gomarché</h2>
+              <h2 className="text-base font-black text-gray-900">
+                Mon Panier <span translate="no" className="notranslate">Gomarché</span>
+              </h2>
               <p className="text-xs text-gray-500">
                 {cart.length} référence{cart.length > 1 ? 's' : ''} d'articles
               </p>
@@ -104,7 +114,7 @@ export const CartDrawer: React.FC = () => {
               </div>
               <h3 className="text-base font-bold text-gray-800">Votre panier est vide</h3>
               <p className="text-xs text-gray-500 max-w-xs mt-1 mb-4">
-                Parcourez nos rayons et profitez des promotions exclusives Gomarché Goma pour remplir votre panier !
+                Parcourez nos rayons et profitez des promotions exclusives <span translate="no" className="notranslate">Gomarché</span> Goma pour remplir votre panier !
               </p>
               <button
                 type="button"

@@ -537,7 +537,7 @@ export const CheckoutModal: React.FC = () => {
             {/* Mobile Push Simulator */}
             <div className="max-w-xs mx-auto bg-gray-900 text-white rounded-3xl p-5 shadow-2xl border-4 border-gray-800 text-left">
               <div className="flex items-center justify-between pb-2 border-b border-gray-800 text-[10px] text-gray-400">
-                <span>Gomarché Goma Gateway</span>
+                <span><span translate="no" className="notranslate">Gomarché</span> Goma Gateway</span>
                 <span>{ussdTimer}s</span>
               </div>
               <p className="text-xs text-amber-300 font-bold mt-2">

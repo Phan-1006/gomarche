@@ -64,7 +64,7 @@ export const ProductSections: React.FC = () => {
     );
   }
 
-  // Otherwise, render the European hypermarket homepage sections as requested in JSON
+  // Otherwise, render the European supermarket homepage sections as requested in JSON
   const dealsProducts = products.filter((p) => p.isPromo).slice(0, 4);
   const essentialsProducts = products.filter((p) => p.isFoodEssential || p.categoryId === 'cat-food');
   const popularProducts = products.filter((p) => p.isPopular).slice(0, 8);
@@ -79,7 +79,7 @@ export const ProductSections: React.FC = () => {
             <div>
               <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider mb-2">
                 <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-300 text-amber-300" />
-                <span>Les Prix Choc Gomarché</span>
+                <span>Les Prix Choc <span translate="no" className="notranslate">Gomarché</span></span>
               </div>
               <h2 className="text-xl sm:text-3xl font-black tracking-tight text-white">
                 Deals of the moment • Bons plans Goma

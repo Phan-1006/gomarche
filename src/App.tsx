@@ -150,7 +150,7 @@ const GomarcheContent: React.FC = () => {
       {/* PWA Prompt bar */}
       <PwaInstallPrompt />
 
-      {/* Modern Hypermarket Header */}
+      {/* Modern Supermarket Header */}
       <Header />
 
       {/* Main View Router */}

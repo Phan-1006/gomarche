@@ -29,7 +29,7 @@ export const PromotionsView: React.FC = () => {
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
-            Les Promotions & Prix Choc Gomarché
+            Les Promotions & Prix Choc <span translate="no" className="notranslate">Gomarché</span>
           </h1>
 
           <p className="text-sm sm:text-base text-red-100 mt-2">

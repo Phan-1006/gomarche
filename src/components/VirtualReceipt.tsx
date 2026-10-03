@@ -58,14 +58,24 @@ export const VirtualReceipt: React.FC<VirtualReceiptProps> = ({ order, onClose }
       <div className="bg-[#1C2024] text-white p-6 relative">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-2xl text-white shadow-md border-2 border-white/30"
-              style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
-            >
-              G
-            </div>
+            {siteConfig.customLogoUrl ? (
+              <img
+                src={siteConfig.customLogoUrl}
+                alt={siteConfig.siteName}
+                className="h-12 max-w-[140px] object-contain rounded-2xl bg-white/95 p-1 border border-white/20 shadow-md"
+              />
+            ) : (
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-2xl text-white shadow-md border-2 border-white/30"
+                style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
+              >
+                G
+              </div>
+            )}
             <div>
-              <h2 className="text-xl font-black tracking-tight">Gomarché Goma</h2>
+              <h2 className="text-xl font-black tracking-tight">
+                <span translate="no" className="notranslate">Gomarché</span> Goma
+              </h2>
               <p className="text-xs text-gray-400">
                 Reçu Numérique Virtuel & Bordereau de Livraison
               </p>
@@ -140,7 +150,7 @@ export const VirtualReceipt: React.FC<VirtualReceiptProps> = ({ order, onClose }
                 </span>
               </div>
               <p className="text-xs text-gray-600 max-w-md">
-                Ce code est votre preuve exclusive de paiement. Communiquez-le au livreur Gomarché uniquement lors de la remise physique de vos articles à Goma.
+                Ce code est votre preuve exclusive de paiement. Communiquez-le au livreur <span translate="no" className="notranslate">Gomarché</span> uniquement lors de la remise physique de vos articles à Goma.
               </p>
             </div>
 
@@ -308,7 +318,7 @@ export const VirtualReceipt: React.FC<VirtualReceiptProps> = ({ order, onClose }
                 Annuler votre commande ?
               </h4>
               <p className="text-xs text-gray-500 mt-1">
-                Conformément à la politique Gomarché Goma, l'annulation est possible dans les 24h précédant la livraison. Le montant sera immédiatement recrédité sur votre compte Mobile Money.
+                Conformément à la politique <span translate="no" className="notranslate">Gomarché</span> Goma, l'annulation est possible dans les 24h précédant la livraison. Le montant sera immédiatement recrédité sur votre compte Mobile Money.
               </p>
             </div>
 

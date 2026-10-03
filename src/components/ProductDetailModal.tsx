@@ -145,7 +145,7 @@ export const ProductDetailModal: React.FC = () => {
                 </span>
                 <span className="flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3 text-blue-600" />
-                  Garantie Fraîcheur Hypermarché
+                  Garantie Fraîcheur Supermarché
                 </span>
               </div>
             </div>

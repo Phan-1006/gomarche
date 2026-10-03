@@ -13,15 +13,20 @@ import {
   ArrowRight,
   Flame,
   ShieldCheck,
+  Upload,
+  Loader2,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Product } from '../types';
+import { uploadImageFile } from '../services/imageUpload';
 
 export const AgentPanel: React.FC = () => {
   const {
     currentUser,
     categories,
     products,
+    siteConfig,
     addProduct,
     updateProduct,
     deleteProduct,
@@ -84,6 +89,7 @@ export const AgentPanel: React.FC = () => {
   const [stock, setStock] = useState(40);
   const [image, setImage] = useState('');
   const [description, setDescription] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [toast, setToast] = useState('');
 
@@ -145,13 +151,21 @@ export const AgentPanel: React.FC = () => {
       <div className="bg-[#1C2024] text-white">
         <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg">
-              <Layers className="w-6 h-6" />
-            </div>
+            {siteConfig.customLogoUrl ? (
+              <img
+                src={siteConfig.customLogoUrl}
+                alt="Logo Gomarché"
+                className="h-12 max-w-[140px] object-contain rounded-2xl bg-white/10 p-1 border border-white/10"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg font-black text-2xl">
+                G
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-black">
-                  Espace Gestionnaire de Rayon Gomarché
+                  Espace Gestionnaire de Rayon <span translate="no" className="notranslate">Gomarché</span>
                 </h1>
                 <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-500/30">
                   Agent de Rayon
@@ -398,15 +412,76 @@ export const AgentPanel: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">URL Image Produit</label>
-                <input
-                  type="text"
-                  placeholder="https://..."
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                />
+              {/* Photo du produit: Upload or Link */}
+              <div className="space-y-2 pt-1 border-t border-gray-100">
+                <label className="block text-xs font-bold text-gray-700">Photo du produit</label>
+                {image && (
+                  <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-200">
+                    <img
+                      src={image}
+                      alt="Aperçu"
+                      className="w-12 h-12 rounded-lg object-contain bg-white border border-gray-200 p-0.5"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[11px] font-bold text-gray-800 block truncate">Photo enregistrée</span>
+                      <span className="text-[10px] text-gray-500 block truncate">{image}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setImage('')}
+                      className="p-1 text-red-500 hover:text-red-700"
+                      title="Supprimer la photo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                <label className="flex items-center justify-center gap-2 w-full py-2.5 px-3 bg-white border border-dashed border-gray-300 hover:border-gray-400 rounded-xl cursor-pointer text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs">
+                  {isUploadingImage ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                      <span>Téléversement de la photo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-emerald-600" />
+                      <span>Uploader une photo depuis cet appareil</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploadingImage}
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingImage(true);
+                      try {
+                        const url = await uploadImageFile(file, 'agent_product');
+                        if (url) {
+                          setImage(url);
+                        }
+                      } finally {
+                        setIsUploadingImage(false);
+                      }
+                    }}
+                  />
+                </label>
+
+                <div>
+                  <span className="text-[10px] text-gray-500 block mb-1 font-semibold">
+                    Ou coller un lien URL web alternatif :
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="https://.../produit.jpg"
+                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl"
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div>

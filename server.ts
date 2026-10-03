@@ -19,6 +19,7 @@ if (!fs.existsSync(DATA_DIR)) {
 
 const CONFIG_FILE = path.join(DATA_DIR, 'site-config.json');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+const CATEGORIES_FILE = path.join(DATA_DIR, 'categories.json');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -32,7 +33,7 @@ app.get('/api/site-config', (req, res) => {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       const content = fs.readFileSync(CONFIG_FILE, 'utf-8');
-      if (content && content.trim()) {
+      if (content && content.trim() && content.trim() !== '{}') {
         return res.json(JSON.parse(content));
       }
     }
@@ -40,7 +41,9 @@ app.get('/api/site-config', (req, res) => {
     if (fs.existsSync(srcPersisted)) {
       const content = fs.readFileSync(srcPersisted, 'utf-8');
       if (content && content.trim() && content.trim() !== '{}') {
-        return res.json(JSON.parse(content));
+        const parsed = JSON.parse(content);
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
+        return res.json(parsed);
       }
     }
   } catch (e) {
@@ -96,6 +99,36 @@ app.post('/api/products', (req, res) => {
   }
 });
 
+// 4b. API: Get persistent categories
+app.get('/api/categories', (req, res) => {
+  try {
+    if (fs.existsSync(CATEGORIES_FILE)) {
+      const content = fs.readFileSync(CATEGORIES_FILE, 'utf-8');
+      if (content && content.trim()) {
+        return res.json(JSON.parse(content));
+      }
+    }
+  } catch (e) {
+    console.error('Error reading categories:', e);
+  }
+  return res.json(null);
+});
+
+// 4c. API: Save persistent categories
+app.post('/api/categories', (req, res) => {
+  try {
+    const cats = req.body;
+    if (!Array.isArray(cats)) {
+      return res.status(400).json({ error: 'Liste de catégories invalide' });
+    }
+    fs.writeFileSync(CATEGORIES_FILE, JSON.stringify(cats, null, 2), 'utf-8');
+    return res.json({ success: true, count: cats.length });
+  } catch (err: any) {
+    console.error('Error saving categories:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // 5. API: Image upload (handles base64 data URLs)
 app.post('/api/upload', (req, res) => {
   try {
@@ -108,7 +141,8 @@ app.post('/api/upload', (req, res) => {
       // If it's already a URL, return it
       return res.json({ url: imageBase64 });
     }
-    const ext = matches[1].split('/')[1] || 'png';
+    let ext = (matches[1].split('/')[1] || 'png').toLowerCase().replace('+xml', '');
+    if (ext === 'jpeg') ext = 'jpg';
     const safeName = (filename ? filename.replace(/[^a-zA-Z0-9_-]/g, '_') : 'img') + '-' + Date.now() + '.' + ext;
     const filePath = path.join(UPLOADS_DIR, safeName);
     fs.writeFileSync(filePath, Buffer.from(matches[2], 'base64'));

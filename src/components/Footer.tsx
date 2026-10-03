@@ -80,7 +80,7 @@ export const Footer: React.FC = () => {
               <img
                 src={siteConfig.customLogoUrl}
                 alt={siteConfig.siteName}
-                className="h-12 max-w-[180px] object-contain rounded-xl bg-white/5 p-1"
+                className="h-12 max-w-[180px] object-contain rounded-xl bg-white/95 p-1.5 shadow-sm"
               />
             ) : (
               <div
@@ -189,7 +189,7 @@ export const Footer: React.FC = () => {
       {/* Bottom Legal */}
       <div className="border-t border-gray-800 bg-[#0E1012] py-4 text-xs text-gray-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>© 2026 Gomarché Goma • Tous droits réservés.</p>
+          <p>© 2026 <span translate="no" className="notranslate">Gomarché</span> Goma • Tous droits réservés.</p>
           <p className="text-gray-500">Service exclusif Ville de Goma, République Démocratique du Congo.</p>
         </div>
       </div>

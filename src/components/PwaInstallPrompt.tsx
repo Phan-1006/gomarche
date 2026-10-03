@@ -26,12 +26,20 @@ export const PwaInstallPrompt: React.FC = () => {
     <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white px-4 py-2.5 shadow-md border-b border-gray-700">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#E2001A] flex items-center justify-center text-white font-black text-sm shrink-0 shadow-xs">
-            G
-          </div>
+          {siteConfig.pwaIconUrl || siteConfig.customLogoUrl ? (
+            <img
+              src={siteConfig.pwaIconUrl || siteConfig.customLogoUrl}
+              alt="Icône App"
+              className="w-8 h-8 rounded-lg object-contain bg-white/10 p-0.5 shrink-0 shadow-xs"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-[#E2001A] flex items-center justify-center text-white font-black text-sm shrink-0 shadow-xs">
+              G
+            </div>
+          )}
           <div>
             <p className="font-bold text-white leading-tight">
-              Installez l'application Gomarché sur votre téléphone (PWA)
+              Installez l'application <span translate="no" className="notranslate">Gomarché</span> sur votre téléphone (PWA)
             </p>
             <p className="text-[11px] text-gray-300 hidden sm:block">
               Accès ultra-rapide sans téléchargement lourd, notifications des promos et suivi livreur.

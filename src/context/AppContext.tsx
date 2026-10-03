@@ -164,42 +164,110 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  // Sync state to localStorage & Server API (for cross-device persistence)
+  // Live Sync state to localStorage & Server API (for real cross-device persistence)
   useEffect(() => {
-    // 1. Fetch server-persisted site config for cross-device synchronization
-    fetch('/api/site-config')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((serverConfig) => {
-        if (serverConfig && typeof serverConfig === 'object' && Object.keys(serverConfig).length > 0) {
-          setSiteConfig((prev) => ({
-            ...prev,
-            ...serverConfig,
-            paymentGateways: {
-              ...prev.paymentGateways,
-              ...(serverConfig.paymentGateways || {}),
-            },
-          }));
-        }
-      })
-      .catch(() => {});
+    const syncFromServer = () => {
+      // 1. Fetch server-persisted site config for cross-device synchronization
+      fetch('/api/site-config')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((serverConfig) => {
+          if (serverConfig && typeof serverConfig === 'object' && Object.keys(serverConfig).length > 0) {
+            setSiteConfig((prev) => ({
+              ...prev,
+              ...serverConfig,
+              paymentGateways: {
+                ...prev.paymentGateways,
+                ...(serverConfig.paymentGateways || {}),
+              },
+            }));
+          } else {
+            // Seed server if empty
+            fetch('/api/site-config', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(siteConfig),
+            }).catch(() => {});
+          }
+        })
+        .catch(() => {});
 
-    // 2. Fetch server-persisted products
-    fetch('/api/products')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((serverProds) => {
-        if (Array.isArray(serverProds) && serverProds.length > 0) {
-          setProducts(serverProds);
-        }
-      })
-      .catch(() => {});
+      // 2. Fetch server-persisted products
+      fetch('/api/products')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((serverProds) => {
+          if (Array.isArray(serverProds) && serverProds.length > 0) {
+            setProducts(serverProds);
+          } else {
+            fetch('/api/products', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(products),
+            }).catch(() => {});
+          }
+        })
+        .catch(() => {});
+
+      // 3. Fetch server-persisted categories
+      fetch('/api/categories')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((serverCats) => {
+          if (Array.isArray(serverCats) && serverCats.length > 0) {
+            setCategories(serverCats);
+          } else {
+            fetch('/api/categories', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(categories),
+            }).catch(() => {});
+          }
+        })
+        .catch(() => {});
+    };
+
+    // Initial fetch
+    syncFromServer();
+
+    // Live polling for cross-device updates every 4 seconds
+    const interval = setInterval(syncFromServer, 4000);
+
+    // Sync on focus / visibility change
+    const onFocus = () => syncFromServer();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
   }, []);
 
   useEffect(() => {
     localStorage.setItem('gm_site_config_v2', JSON.stringify(siteConfig));
+    // Persist site config to server so changes by admin appear on all devices
+    fetch('/api/site-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(siteConfig),
+    }).catch(() => {});
+
+    // Dynamically update favicon and app icons
+    const iconUrl = siteConfig.pwaIconUrl || siteConfig.customLogoUrl;
+    if (iconUrl) {
+      const linkIcon = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+      if (linkIcon) linkIcon.href = iconUrl;
+      const linkApple = document.querySelector("link[rel*='apple-touch-icon']") as HTMLLinkElement;
+      if (linkApple) linkApple.href = iconUrl;
+    }
   }, [siteConfig]);
 
   useEffect(() => {
     localStorage.setItem('gm_categories_v2', JSON.stringify(categories));
+    fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(categories),
+    }).catch(() => {});
   }, [categories]);
 
   useEffect(() => {

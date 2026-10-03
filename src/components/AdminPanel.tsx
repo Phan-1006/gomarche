@@ -37,10 +37,12 @@ import {
   CheckCircle2,
   Upload,
   Image as ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Category, Product, SiteConfig, User, Role, OrderStatus, ThemeStyle, DeliverySlotConfig } from '../types';
 import { AirtelMoneyLogo, OrangeMoneyLogo, MpesaLogo, AfriMoneyLogo } from './MobileMoneyLogos';
+import { uploadImageFile } from '../services/imageUpload';
 import {
   getActiveFirebaseConfig,
   updateFirebaseConfig,
@@ -134,6 +136,9 @@ export const AdminPanel: React.FC = () => {
   const [newProdStock, setNewProdStock] = useState(50);
   const [newProdIsPromo, setNewProdIsPromo] = useState(false);
   const [isProdModalOpen, setIsProdModalOpen] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingPwaIcon, setIsUploadingPwaIcon] = useState(false);
+  const [isUploadingProdImage, setIsUploadingProdImage] = useState(false);
 
   // Success alert
   const [saveToast, setSaveToast] = useState(false);
@@ -403,13 +408,21 @@ export const AdminPanel: React.FC = () => {
       <div className="bg-[#161A1D] text-white border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center text-white shadow-lg border border-red-500">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
+            {siteConfig.customLogoUrl ? (
+              <img
+                src={siteConfig.customLogoUrl}
+                alt={siteConfig.siteName}
+                className="h-12 max-w-[140px] object-contain rounded-2xl bg-white/10 p-1 border border-white/10 shadow-lg"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center text-white shadow-lg border border-red-500">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                  Pannel d'Administration Gomarché Goma
+                  Pannel d'Administration <span translate="no" className="notranslate">Gomarché</span> Goma
                 </h1>
                 <span className="bg-red-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
                   Propriétaire
@@ -786,7 +799,7 @@ export const AdminPanel: React.FC = () => {
             <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm space-y-6">
               <div>
                 <h3 className="text-lg font-black text-gray-900">
-                  Logo & Identité Visuelle Hypermarché
+                  Logo & Identité Visuelle Supermarché
                 </h3>
                 <p className="text-xs text-gray-500">
                   Personnalisez l'emblème, les couleurs du moment et l'icône PWA mobile
@@ -836,38 +849,215 @@ export const AdminPanel: React.FC = () => {
                 })}
               </div>
 
-              {/* Logo customization */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
-                  <span className="text-xs font-bold text-gray-700 uppercase block">
-                    URL du Logo Image Personnalisé (Optionnel)
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="https://.../logo.png"
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl bg-white"
-                    value={siteConfig.customLogoUrl || ''}
-                    onChange={(e) => updateSiteConfig({ customLogoUrl: e.target.value })}
-                  />
-                  <p className="text-[11px] text-gray-500">
-                    Laissez vide pour utiliser le logo Gomarché Goma agrandi officiel.
-                  </p>
+              {/* Logo & App Icon customization */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+                {/* 1. Site Logo */}
+                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-800 uppercase block">
+                      Logo Officiel du Supermarché
+                    </span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Synchronisé tous appareils
+                    </span>
+                  </div>
+
+                  {/* Preview */}
+                  <div className="p-3 bg-white rounded-xl border border-gray-200 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {siteConfig.customLogoUrl ? (
+                        <img
+                          src={siteConfig.customLogoUrl}
+                          alt="Logo actuel"
+                          className="h-12 max-w-[140px] object-contain rounded-lg border border-gray-100 p-1"
+                        />
+                      ) : (
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-2xl shadow-sm shrink-0"
+                          style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
+                        >
+                          G
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-gray-900 block truncate">
+                          {siteConfig.customLogoUrl ? 'Logo personnalisé actif' : 'Logo Gomarché par défaut'}
+                        </span>
+                        <span className="text-[10px] text-gray-500 block truncate">
+                          Visible sur Header, Drawer, Footer & Reçus
+                        </span>
+                      </div>
+                    </div>
+
+                    {siteConfig.customLogoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateSiteConfig({ customLogoUrl: '' });
+                          showSaveSuccess();
+                        }}
+                        className="text-[11px] text-red-600 hover:text-red-800 font-bold px-2 py-1 rounded bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                      >
+                        Réinitialiser
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Upload file or URL */}
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-semibold text-gray-700">
+                      Uploader une photo / logo depuis vos fichiers :
+                    </label>
+                    <label className="flex items-center justify-center gap-2 w-full py-2.5 px-3 bg-white border border-dashed border-gray-300 hover:border-gray-400 rounded-xl cursor-pointer text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs">
+                      {isUploadingLogo ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                          <span>Téléversement sur le serveur...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 text-emerald-600" />
+                          <span>Parcourir mes photos (PNG, JPG, SVG, WebP)</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploadingLogo}
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setIsUploadingLogo(true);
+                          try {
+                            const url = await uploadImageFile(file, 'logo_gomarche');
+                            if (url) {
+                              updateSiteConfig({ customLogoUrl: url });
+                              showSaveSuccess();
+                            }
+                          } finally {
+                            setIsUploadingLogo(false);
+                          }
+                        }}
+                      />
+                    </label>
+
+                    <div className="pt-1">
+                      <span className="text-[10px] font-semibold text-gray-500 block mb-1">
+                        Ou saisir un lien URL web alternatif :
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="https://.../logo.png"
+                        className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl bg-white"
+                        value={siteConfig.customLogoUrl || ''}
+                        onChange={(e) => updateSiteConfig({ customLogoUrl: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
-                  <span className="text-xs font-bold text-gray-700 uppercase block">
-                    URL Icône PWA Mobile
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="https://.../pwa-icon.png"
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl bg-white"
-                    value={siteConfig.pwaIconUrl || ''}
-                    onChange={(e) => updateSiteConfig({ pwaIconUrl: e.target.value })}
-                  />
-                  <p className="text-[11px] text-gray-500">
-                    Icône installée sur les écrans d'accueil smartphones à Goma.
-                  </p>
+                {/* 2. PWA App Icon */}
+                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-800 uppercase block">
+                      Icône Application Mobile (PWA & Écran d'accueil)
+                    </span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Smartphone className="w-3 h-3" /> Android & iPhone
+                    </span>
+                  </div>
+
+                  {/* Preview */}
+                  <div className="p-3 bg-white rounded-xl border border-gray-200 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {siteConfig.pwaIconUrl ? (
+                        <img
+                          src={siteConfig.pwaIconUrl}
+                          alt="Icône PWA"
+                          className="w-12 h-12 rounded-2xl object-cover border border-gray-100 p-0.5 shadow-xs"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-2xl bg-[#E2001A] text-white flex items-center justify-center font-black text-xl shadow-xs">
+                          GM
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-gray-900 block truncate">
+                          {siteConfig.pwaIconUrl ? 'Icône PWA personnalisée' : 'Icône PWA par défaut'}
+                        </span>
+                        <span className="text-[10px] text-gray-500 block truncate">
+                          Installée sur l'écran d'accueil smartphones à Goma
+                        </span>
+                      </div>
+                    </div>
+
+                    {siteConfig.pwaIconUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateSiteConfig({ pwaIconUrl: '' });
+                          showSaveSuccess();
+                        }}
+                        className="text-[11px] text-red-600 hover:text-red-800 font-bold px-2 py-1 rounded bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                      >
+                        Réinitialiser
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Upload file or URL */}
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-semibold text-gray-700">
+                      Uploader l'icône de l'application depuis cet appareil :
+                    </label>
+                    <label className="flex items-center justify-center gap-2 w-full py-2.5 px-3 bg-white border border-dashed border-gray-300 hover:border-gray-400 rounded-xl cursor-pointer text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs">
+                      {isUploadingPwaIcon ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                          <span>Téléversement en cours...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 text-emerald-600" />
+                          <span>Parcourir une image (carrée 512x512 recommandée)</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploadingPwaIcon}
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setIsUploadingPwaIcon(true);
+                          try {
+                            const url = await uploadImageFile(file, 'pwa_icon');
+                            if (url) {
+                              updateSiteConfig({ pwaIconUrl: url });
+                              showSaveSuccess();
+                            }
+                          } finally {
+                            setIsUploadingPwaIcon(false);
+                          }
+                        }}
+                      />
+                    </label>
+
+                    <div className="pt-1">
+                      <span className="text-[10px] font-semibold text-gray-500 block mb-1">
+                        Ou saisir un lien URL web alternatif :
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="https://.../pwa-icon.png"
+                        className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl bg-white"
+                        value={siteConfig.pwaIconUrl || ''}
+                        onChange={(e) => updateSiteConfig({ pwaIconUrl: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1011,7 +1201,7 @@ export const AdminPanel: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-black text-gray-900">
-                  Catalogue Produits Hypermarché
+                  Catalogue Produits Supermarché
                 </h3>
                 <p className="text-xs text-gray-500">
                   Gestion centralisée de l'ensemble des articles
@@ -1155,16 +1345,14 @@ export const AdminPanel: React.FC = () => {
                   instructions: 'Validation instantanée par push USSD sur votre téléphone',
                 };
 
-                const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+                const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      if (event.target?.result) {
-                        updatePaymentGateway('airtel', { customLogoUrl: event.target.result as string });
-                      }
-                    };
-                    reader.readAsDataURL(file);
+                    const url = await uploadImageFile(file, 'airtel_logo');
+                    if (url) {
+                      updatePaymentGateway('airtel', { customLogoUrl: url });
+                      showSaveSuccess();
+                    }
                   }
                 };
 
@@ -1309,16 +1497,14 @@ export const AdminPanel: React.FC = () => {
                   instructions: 'Paiement sécurisé instantané avec confirmation PIN M-Pesa',
                 };
 
-                const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+                const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      if (event.target?.result) {
-                        updatePaymentGateway('mpesa', { customLogoUrl: event.target.result as string });
-                      }
-                    };
-                    reader.readAsDataURL(file);
+                    const url = await uploadImageFile(file, 'mpesa_logo');
+                    if (url) {
+                      updatePaymentGateway('mpesa', { customLogoUrl: url });
+                      showSaveSuccess();
+                    }
                   }
                 };
 
@@ -1463,16 +1649,14 @@ export const AdminPanel: React.FC = () => {
                   instructions: 'Validation immédiate par notification Orange Money',
                 };
 
-                const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+                const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      if (event.target?.result) {
-                        updatePaymentGateway('orange', { customLogoUrl: event.target.result as string });
-                      }
-                    };
-                    reader.readAsDataURL(file);
+                    const url = await uploadImageFile(file, 'orange_logo');
+                    if (url) {
+                      updatePaymentGateway('orange', { customLogoUrl: url });
+                      showSaveSuccess();
+                    }
                   }
                 };
 
@@ -1617,16 +1801,14 @@ export const AdminPanel: React.FC = () => {
                   instructions: 'Validation immédiate par SMS ou USSD Africell',
                 };
 
-                const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+                const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      if (event.target?.result) {
-                        updatePaymentGateway('afrimoney', { customLogoUrl: event.target.result as string });
-                      }
-                    };
-                    reader.readAsDataURL(file);
+                    const url = await uploadImageFile(file, 'afrimoney_logo');
+                    if (url) {
+                      updatePaymentGateway('afrimoney', { customLogoUrl: url });
+                      showSaveSuccess();
+                    }
                   }
                 };
 
@@ -2328,7 +2510,7 @@ export const AdminPanel: React.FC = () => {
             </h3>
             <form onSubmit={handleSaveProduct} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Nom *</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Nom du produit *</label>
                 <input
                   type="text"
                   required
@@ -2338,12 +2520,40 @@ export const AdminPanel: React.FC = () => {
                   onChange={(e) => setNewProdName(e.target.value)}
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Rayon / Catégorie *</label>
+                  <select
+                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl bg-white font-semibold"
+                    value={newProdCategory}
+                    onChange={(e) => setNewProdCategory(e.target.value)}
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Marque</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Gomarché Sélection"
+                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl"
+                    value={newProdBrand}
+                    onChange={(e) => setNewProdBrand(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Prix ($ USD)</label>
                   <input
                     type="number"
-                    step="0.1"
+                    step="0.05"
                     required
                     className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl font-bold"
                     value={newProdPriceUsd}
@@ -2361,17 +2571,112 @@ export const AdminPanel: React.FC = () => {
                     onChange={(e) => setNewProdDiscount(Number(e.target.value))}
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Stock</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl font-bold text-emerald-700"
+                    value={newProdStock}
+                    onChange={(e) => setNewProdStock(Number(e.target.value))}
+                  />
+                </div>
               </div>
+
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Conditionnement / Unité</label>
                 <input
                   type="text"
-                  placeholder="Ex: sac 25kg, bidon 5L"
+                  placeholder="Ex: sac 25kg, bidon 5L, le kg"
                   className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl"
                   value={newProdUnit}
                   onChange={(e) => setNewProdUnit(e.target.value)}
                 />
               </div>
+
+              {/* Photo du produit: Upload or Link */}
+              <div className="space-y-2 pt-1 border-t border-gray-100">
+                <label className="block text-xs font-bold text-gray-700">Photo du produit</label>
+                {newProdImage && (
+                  <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-200">
+                    <img
+                      src={newProdImage}
+                      alt="Aperçu"
+                      className="w-12 h-12 rounded-lg object-contain bg-white border border-gray-200 p-0.5"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[11px] font-bold text-gray-800 block truncate">Photo enregistrée</span>
+                      <span className="text-[10px] text-gray-500 block truncate">{newProdImage}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNewProdImage('')}
+                      className="p-1 text-red-500 hover:text-red-700"
+                      title="Supprimer la photo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                <label className="flex items-center justify-center gap-2 w-full py-2.5 px-3 bg-white border border-dashed border-gray-300 hover:border-gray-400 rounded-xl cursor-pointer text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs">
+                  {isUploadingProdImage ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                      <span>Téléversement de la photo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-emerald-600" />
+                      <span>Uploader une photo depuis cet appareil</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploadingProdImage}
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingProdImage(true);
+                      try {
+                        const url = await uploadImageFile(file, 'produit');
+                        if (url) {
+                          setNewProdImage(url);
+                        }
+                      } finally {
+                        setIsUploadingProdImage(false);
+                      }
+                    }}
+                  />
+                </label>
+
+                <div>
+                  <span className="text-[10px] text-gray-500 block mb-1 font-semibold">
+                    Ou coller une URL d'image alternative :
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="https://.../produit.jpg"
+                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl"
+                    value={newProdImage}
+                    onChange={(e) => setNewProdImage(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl"
+                  placeholder="Détails, conservation, origine..."
+                  value={newProdDesc}
+                  onChange={(e) => setNewProdDesc(e.target.value)}
+                />
+              </div>
+
               <div className="flex items-center justify-end gap-2 pt-3">
                 <button
                   type="button"
@@ -2382,9 +2687,9 @@ export const AdminPanel: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold bg-[#E2001A] text-white rounded-xl shadow-md"
+                  className="px-5 py-2.5 text-xs font-bold bg-[#E2001A] text-white rounded-xl shadow-md hover:bg-red-700"
                 >
-                  Valider
+                  Enregistrer l'article
                 </button>
               </div>
             </form>

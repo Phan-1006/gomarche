@@ -226,7 +226,7 @@ export const GomaDeliveryMap: React.FC<GomaDeliveryMapProps> = ({
             <Store className="w-4 h-4" />
           </div>
           <span className="mt-1 px-1.5 py-0.5 bg-gray-900/90 text-[9px] font-black text-white rounded-md whitespace-nowrap shadow-xs">
-            Hub Gomarché Goma
+            Hub <span translate="no" className="notranslate">Gomarché</span> Goma
           </span>
         </div>
 

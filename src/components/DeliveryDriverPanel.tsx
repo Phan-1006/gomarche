@@ -20,6 +20,7 @@ export const DeliveryDriverPanel: React.FC = () => {
   const {
     currentUser,
     orders,
+    siteConfig,
     updateOrderStatus,
     confirmOrderDeliveryWithCode,
     formatPrice,
@@ -100,13 +101,21 @@ export const DeliveryDriverPanel: React.FC = () => {
       <div className="bg-[#161A1D] text-white">
         <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg">
-              <Truck className="w-6 h-6" />
-            </div>
+            {siteConfig.customLogoUrl ? (
+              <img
+                src={siteConfig.customLogoUrl}
+                alt={siteConfig.siteName}
+                className="h-12 max-w-[140px] object-contain rounded-2xl bg-white/10 p-1 border border-white/10 shadow-lg"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg">
+                <Truck className="w-6 h-6" />
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-black">
-                  Espace Livreur Gomarché Goma Express
+                  Espace Livreur <span translate="no" className="notranslate">Gomarché</span> Goma Express
                 </h1>
                 <span className="bg-blue-500/20 text-blue-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-blue-500/30">
                   Zone Goma Exclusif

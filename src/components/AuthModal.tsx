@@ -268,7 +268,7 @@ export const AuthModal: React.FC = () => {
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : isSignUp ? (
-                'Créer mon compte Gomarché'
+                <>Créer mon compte <span translate="no" className="notranslate">Gomarché</span></>
               ) : (
                 'Se connecter à mon compte'
               )}
