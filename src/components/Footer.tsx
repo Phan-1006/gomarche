@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { scrollToResults } from '../utils/scroll';
 import { AirtelMoneyLogo, OrangeMoneyLogo, MpesaLogo, AfriMoneyLogo } from './MobileMoneyLogos';
 
 export const Footer: React.FC = () => {
@@ -131,7 +132,8 @@ export const Footer: React.FC = () => {
                   onClick={() => {
                     setSelectedCategoryFilter(c.id);
                     setActiveView('home');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    // Même rayon déjà sélectionné : rien ne change à l'écran, on y ramène quand même.
+                    scrollToResults();
                   }}
                   className="hover:text-white transition-colors"
                 >

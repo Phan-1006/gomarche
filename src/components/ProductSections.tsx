@@ -1,10 +1,34 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Flame, Sparkles, TrendingUp, ShoppingBasket, ArrowRight, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ProductCard } from './ProductCard';
+import { RESULTS_ID, scrollToResults, scrollToTop } from '../utils/scroll';
 
 export const ProductSections: React.FC = () => {
-  const { products, selectedCategoryFilter, searchQuery, setActiveView, setSelectedCategoryFilter, siteConfig } = useApp();
+  const { products, selectedCategoryFilter, searchQuery, setSearchQuery, setActiveView, setSelectedCategoryFilter, siteConfig } = useApp();
+
+  // Choisir un rayon amène tout de suite à ses produits, d'où qu'on ait cliqué (menu, vignettes,
+  // bas de page). Retirer les filtres ramène en haut de la boutique.
+  const hadFilter = useRef(false);
+  useEffect(() => {
+    if (selectedCategoryFilter) scrollToResults();
+    else if (hadFilter.current && !searchQuery) scrollToTop();
+    hadFilter.current = !!(selectedCategoryFilter || searchQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategoryFilter]);
+
+  // Pendant une recherche, on attend la fin de la frappe : la page ne saute pas à chaque lettre.
+  useEffect(() => {
+    if (!searchQuery) {
+      if (hadFilter.current && !selectedCategoryFilter) scrollToTop();
+      hadFilter.current = !!selectedCategoryFilter;
+      return;
+    }
+    hadFilter.current = true;
+    const timer = setTimeout(scrollToResults, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   // Filter products based on search or category
   const filteredProducts = products.filter((p) => {
@@ -24,7 +48,7 @@ export const ProductSections: React.FC = () => {
   // If search or specific category filter is active, display the filtered grid
   if (searchQuery || selectedCategoryFilter) {
     return (
-      <section className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+      <section id={RESULTS_ID} className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-gray-900">
@@ -38,6 +62,7 @@ export const ProductSections: React.FC = () => {
             type="button"
             onClick={() => {
               setSelectedCategoryFilter(null);
+              setSearchQuery('');
             }}
             className="text-xs font-bold text-[#E2001A] hover:underline cursor-pointer"
           >

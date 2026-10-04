@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Home,
   Layers,
@@ -29,6 +29,7 @@ import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { EmailVerifyBanner } from './components/EmailVerifyBanner';
 import { NotificationPrompt } from './components/NotificationPrompt';
 import { Footer } from './components/Footer';
+import { scrollToTop } from './utils/scroll';
 
 const MobileBottomNav: React.FC = () => {
   const {
@@ -148,7 +149,21 @@ const MobileBottomNav: React.FC = () => {
 };
 
 const GomarcheContent: React.FC = () => {
-  const { activeView, siteConfig } = useApp();
+  const { activeView, siteConfig, selectedOrder, selectedCategoryFilter, searchQuery } = useApp();
+
+  // Changer de page (ou ouvrir une commande) repart du haut. Deux exceptions : la fiche produit,
+  // qui s'ouvre par-dessus la boutique sans la déplacer, et la boutique filtrée, qui se place
+  // d'elle-même sur ses résultats.
+  const previousView = useRef(activeView);
+  const selectedOrderId = selectedOrder?.id;
+  useEffect(() => {
+    const from = previousView.current;
+    previousView.current = activeView;
+    if (activeView === 'product_detail' || from === 'product_detail') return;
+    if (activeView === 'home' && (selectedCategoryFilter || searchQuery)) return;
+    scrollToTop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeView, selectedOrderId]);
 
   return (
     <div
@@ -169,7 +184,9 @@ const GomarcheContent: React.FC = () => {
 
       {/* Main View Router */}
       <main className="flex-1">
-        {activeView === 'home' && (
+        {/* La fiche produit s'ouvre par-dessus la boutique : même rendu, pour qu'elle ne soit pas
+            reconstruite (et ne perde pas sa position) à l'ouverture et à la fermeture. */}
+        {(activeView === 'home' || activeView === 'product_detail') && (
           <>
             <HeroCarousel />
             <CategoryShowcase />
@@ -191,13 +208,6 @@ const GomarcheContent: React.FC = () => {
 
         {activeView === 'orders' && <OrderTrackingView />}
 
-        {activeView === 'product_detail' && (
-          <>
-            <HeroCarousel />
-            <CategoryShowcase />
-            <ProductSections />
-          </>
-        )}
       </main>
 
       {/* Modals & Overlays */}
