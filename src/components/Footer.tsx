@@ -180,7 +180,7 @@ export const Footer: React.FC = () => {
           <p className="text-gray-400 text-xs">
             Réglez vos courses en direct en USD ($) ou CDF (FC) par :
           </p>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <AirtelMoneyLogo size="sm" customLogoUrl={siteConfig.paymentGateways?.airtel?.customLogoUrl} />
             <OrangeMoneyLogo size="sm" customLogoUrl={siteConfig.paymentGateways?.orange?.customLogoUrl} />
             <MpesaLogo size="sm" customLogoUrl={siteConfig.paymentGateways?.mpesa?.customLogoUrl} />
