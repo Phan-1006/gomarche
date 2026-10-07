@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { AppView, useApp } from '../context/AppContext';
 import { ROLE_LABELS } from '../types';
+import { staffLinksFor } from '../utils/staffLinks';
 import { AirtelMoneyLogo, OrangeMoneyLogo, MpesaLogo, AfriMoneyLogo } from './MobileMoneyLogos';
 
 export const Header: React.FC = () => {
@@ -56,13 +57,13 @@ export const Header: React.FC = () => {
   const accountDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: Event) => {
       if (accountDropdownRef.current && !accountDropdownRef.current.contains(e.target as Node)) {
         setIsAccountDropdownOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
   }, []);
 
   const handlePwaInstall = async () => {
@@ -77,20 +78,7 @@ export const Header: React.FC = () => {
     }
   };
 
-  // Espaces de travail accessibles selon le rôle (le premier est l'espace principal).
-  const STAFF_LINKS: Record<string, { view: AppView; label: string }[]> = {
-    admin: [
-      { view: 'admin', label: 'Administration' },
-      { view: 'cashier', label: 'Caisse & paiements' },
-      { view: 'prep', label: 'Préparation des commandes' },
-      { view: 'agent', label: 'Catalogue des rayons' },
-    ],
-    category_agent: [{ view: 'agent', label: 'Mon rayon' }],
-    order_agent: [{ view: 'prep', label: 'Préparation des commandes' }],
-    cashier: [{ view: 'cashier', label: 'Caisse & paiements' }],
-    delivery_driver: [{ view: 'delivery', label: 'Espace livreur' }],
-  };
-  const staffLinks = (currentUser && STAFF_LINKS[currentUser.role]) || [];
+  const staffLinks = staffLinksFor(currentUser);
 
   return (
     <header className="sticky top-0 z-40 bg-white shadow-xs border-b border-gray-100">

@@ -23,6 +23,7 @@ import {
   writeLimiter,
 } from './security';
 import { GOMA_QUARTIERS } from '../src/data/mockData';
+import { TERMS_VERSION } from '../src/data/terms';
 import { publicUrl, sendAccountMail } from './mail';
 
 const findUser = (email: string) => db.users.find((u) => u.email === email);
@@ -119,13 +120,14 @@ authRouter.post('/auth/register', signupCeiling, authLimiter, botCheck, (req, re
   if (!isEmail(email)) return res.status(400).json({ error: 'Adresse e-mail invalide.' });
   if (name.length < 2) return res.status(400).json({ error: 'Indiquez votre nom.' });
   if (!validPassword(password)) return res.status(400).json({ error: 'Le mot de passe doit comporter au moins 8 caractères.' });
+  if (req.body?.acceptTerms !== true) return res.status(400).json({ error: 'Vous devez accepter les règles et conditions d’utilisation pour créer un compte.' });
   // Une adresse d'employé ne peut pas être prise par inscription libre : sinon n'importe qui
   // pourrait s'approprier le rôle en devançant l'employé.
   if (isReservedEmail(email)) {
     return res.status(403).json({ error: 'Cette adresse est réservée au personnel : connectez-vous avec Google ou avec le mot de passe remis par l’administrateur.' });
   }
   if (findUser(email)) return res.status(409).json({ error: 'Un compte existe déjà avec cette adresse. Connectez-vous.' });
-  const user = createUser({ email, name, emailVerified: false, passwordHash: hashPassword(password) });
+  const user = createUser({ email, name, emailVerified: false, passwordHash: hashPassword(password), termsVersion: TERMS_VERSION, termsAcceptedAt: Date.now() });
   startSession(res, user);
   // L'adresse reste « non confirmée » tant que le lien reçu par e-mail n'a pas été ouvert.
   void sendVerification(user);
@@ -202,7 +204,8 @@ authRouter.post('/auth/google', authLimiter, async (req, res) => {
     const google = await verifyFirebaseIdToken(String(req.body?.idToken || ''));
     let user = findUser(google.email);
     if (user?.disabled) return res.status(403).json({ error: 'Ce compte est désactivé.' });
-    if (!user) user = createUser({ email: google.email, name: google.name, emailVerified: true });
+    // L'écran de connexion précise que continuer avec Google vaut acceptation des conditions.
+    if (!user) user = createUser({ email: google.email, name: google.name, emailVerified: true, termsVersion: TERMS_VERSION, termsAcceptedAt: Date.now() });
     else if (!user.emailVerified) {
       // Compte créé par mot de passe sans jamais confirmer l'adresse : rien ne prouve que son
       // créateur en était le propriétaire. Le vrai propriétaire, prouvé par Google, le reprend

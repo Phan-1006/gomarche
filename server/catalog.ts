@@ -43,6 +43,17 @@ catalogRouter.get('/bootstrap', (req: AuthedRequest, res) => {
   });
 });
 
+// La même boutique sans rien de personnel : identique pour tous les visiteurs, donc gardée
+// quelques secondes par le réseau de diffusion placé devant le serveur. Elle s'affiche tout de
+// suite, même quand le serveur sort de veille ; pendant qu'il se réveille, la dernière copie
+// connue est servie (jusqu'à une heure).
+catalogRouter.get('/catalog', (_req, res) => {
+  const policy = 'public, max-age=0, s-maxage=20, stale-while-revalidate=3600';
+  res.set('Cache-Control', policy);
+  res.set('CDN-Cache-Control', policy);
+  res.json({ config: publicConfig(), categories: db.categories, products: db.products });
+});
+
 // ---------------------------------------------------------------- configuration (admin)
 
 const admin = requireRole('admin');

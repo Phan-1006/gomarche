@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { scrollToResults } from '../utils/scroll';
+import { TermsLink } from './TermsLink';
 import { AirtelMoneyLogo, OrangeMoneyLogo, MpesaLogo, AfriMoneyLogo } from './MobileMoneyLogos';
 
 export const Footer: React.FC = () => {
@@ -191,7 +192,10 @@ export const Footer: React.FC = () => {
       {/* Bottom Legal */}
       <div className="border-t border-gray-800 bg-[#0E1012] py-4 text-xs text-gray-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>© 2026 <span translate="no" className="notranslate">Gomarché</span> Goma • Tous droits réservés.</p>
+          <p>
+            © 2026 <span translate="no" className="notranslate">Gomarché</span> Goma • Tous droits réservés •{' '}
+            <TermsLink className="underline hover:text-white">Conditions d’utilisation</TermsLink>
+          </p>
           <p className="text-gray-500">Service exclusif Ville de Goma, République Démocratique du Congo.</p>
         </div>
       </div>

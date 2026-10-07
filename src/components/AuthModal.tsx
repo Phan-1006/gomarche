@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Mail, Lock, User as UserIcon, AlertCircle, Loader2, ShieldCheck, MailCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useBotGuard } from './BotGuard';
+import { TermsLink } from './TermsLink';
 
 const GoogleIcon = () => (
   <span aria-hidden="true" className="w-5 h-5 rounded-full bg-white border border-gray-300 text-[13px] font-black text-[#4285F4] flex items-center justify-center">
@@ -17,6 +18,7 @@ export const AuthModal: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<'form' | 'google' | null>(null);
   const bot = useBotGuard();
@@ -66,7 +68,7 @@ export const AuthModal: React.FC = () => {
       return finish(res);
     }
     if (mode === 'login') return finish(await login(email, password, bot.fields));
-    const res = await register(name, email, password, bot.fields);
+    const res = await register(name, email, password, { ...bot.fields, acceptTerms });
     if (res.success) notify('Compte créé. Un e-mail de confirmation vient de vous être envoyé.');
     finish(res);
   };
@@ -186,6 +188,21 @@ export const AuthModal: React.FC = () => {
             </div>
           )}
 
+          {mode === 'register' && (
+            <label className="flex items-start gap-2.5 text-xs text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                required
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0 accent-[#E2001A]"
+              />
+              <span>
+                J’ai lu et j’accepte les règles et conditions d’utilisation. <TermsLink>En savoir plus</TermsLink>
+              </span>
+            </label>
+          )}
+
           {bot.element}
 
           {error && (
@@ -197,7 +214,7 @@ export const AuthModal: React.FC = () => {
 
           <button
             type="submit"
-            disabled={!!busy || bot.pending}
+            disabled={!!busy || bot.pending || (mode === 'register' && !acceptTerms)}
             className="w-full py-3 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 disabled:opacity-60"
             style={{ backgroundColor: siteConfig.primaryColor || '#E2001A' }}
           >
@@ -221,6 +238,12 @@ export const AuthModal: React.FC = () => {
           </p>
         )}
         </>
+        )}
+
+        {withAccount && (
+          <p className="text-[11px] text-center text-gray-500">
+            En continuant avec Google, vous acceptez les règles et conditions d’utilisation. <TermsLink>En savoir plus</TermsLink>
+          </p>
         )}
 
         {withAccount && (

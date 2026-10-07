@@ -36,6 +36,9 @@ export interface DbUser {
   verifyTokenExpiresAt?: number;
   resetTokenHash?: string;
   resetTokenExpiresAt?: number;
+  // Version des conditions d'utilisation acceptée à la création du compte, et quand.
+  termsVersion?: string;
+  termsAcceptedAt?: number;
 }
 
 // Appareil abonné aux notifications push d'un compte.

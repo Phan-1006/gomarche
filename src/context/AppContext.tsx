@@ -32,6 +32,8 @@ type Toast = { id: number; kind: 'success' | 'error'; message: string };
 
 interface AppContextType {
   ready: boolean;
+  // Vrai tant que rien de fiable n'est encore affichable (première visite, ou copie locale en attente de mise à jour).
+  booting: boolean;
   currentUser: User | null;
   categories: Category[];
   products: Product[];
@@ -199,20 +201,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const configTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const configBusy = () => configTimer.current !== null || Object.keys(pendingConfig.current).length > 0;
 
+  const applyCatalog = (data: CatalogCache) => {
+    if (!configBusy()) setSiteConfig(data.config);
+    setCategories(data.categories);
+    setProducts(data.products);
+    setStored('gm_catalog_cache_v1', { config: data.config, categories: data.categories, products: data.products });
+  };
+
+  // Réponse complète du serveur (boutique + compte connecté) : toujours à jour.
+  const freshLoaded = useRef(false);
   const syncCatalog = useCallback(async () => {
     try {
       const data = await api<CatalogCache & { user: User | null }>('GET', '/bootstrap');
-      if (!configBusy()) setSiteConfig(data.config);
-      setCategories(data.categories);
-      setProducts(data.products);
+      freshLoaded.current = true;
+      applyCatalog(data);
       setCurrentUser(data.user);
-      setStored('gm_catalog_cache_v1', { config: data.config, categories: data.categories, products: data.products });
     } catch {
       /* hors ligne : on garde l'affichage courant, la prochaine tentative rattrapera */
     } finally {
       setReady(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Copie publique de la boutique, servie par le réseau de diffusion : elle arrive en une fraction
+  // de seconde, même quand le serveur sort de veille. Ignorée si la réponse complète est déjà là.
+  const syncPublicCatalog = useCallback(async () => {
+    try {
+      const data = await api<CatalogCache>('GET', '/catalog');
+      if (freshLoaded.current) return;
+      applyCatalog(data);
+      setReady(true);
+    } catch {
+      /* la réponse complète prendra le relais */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Après une modification par l'admin ou un agent, on redemande la copie publique une fois son
+  // délai de garde écoulé : le prochain visiteur reçoit ainsi directement la nouvelle version.
+  const warmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warmPublicCatalog = () => {
+    if (warmTimer.current) clearTimeout(warmTimer.current);
+    warmTimer.current = setTimeout(() => {
+      fetch('/api/catalog').catch(() => {});
+      setTimeout(() => fetch('/api/catalog').catch(() => {}), 4000);
+    }, 22_000);
+  };
+
+  // Une copie locale d'une visite précédente peut être périmée : on laisse une courte avance à la
+  // copie publique avant d'afficher quoi que ce soit, pour ne pas montrer l'ancienne version.
+  const [graceOver, setGraceOver] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setGraceOver(true), 900);
+    return () => clearTimeout(timer);
+  }, []);
+  const booting = !ready && (!cached || !graceOver);
 
   const refreshOrders = useCallback(async () => {
     try {
@@ -226,6 +270,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
+    syncPublicCatalog();
     syncCatalog();
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') syncCatalog();
@@ -238,7 +283,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [syncCatalog]);
+  }, [syncCatalog, syncPublicCatalog]);
 
   const userId = currentUser?.id;
   useEffect(() => {
@@ -515,6 +560,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     pendingConfig.current = {};
     try {
       const { config } = await api<{ config: SiteConfig }>('PUT', '/config', patch);
+      warmPublicCatalog();
       if (!configBusy()) setSiteConfig(config);
     } catch (e) {
       notify(errorMessage(e), 'error');
@@ -533,6 +579,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const saveSiteConfig = async (patch: Partial<SiteConfig>): Promise<AuthResult> => {
     try {
       const { config } = await api<{ config: SiteConfig }>('PUT', '/config', patch);
+      warmPublicCatalog();
       setSiteConfig(config);
       return { success: true };
     } catch (e) {
@@ -548,6 +595,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const mutate = async (run: () => Promise<void>, success?: string): Promise<boolean> => {
     try {
       await run();
+      warmPublicCatalog();
       if (success) notify(success);
       return true;
     } catch (e) {
@@ -625,6 +673,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider
       value={{
         ready,
+        booting,
         currentUser,
         categories,
         products,
