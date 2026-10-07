@@ -214,7 +214,7 @@ export const AdminPanel: React.FC = () => {
               <img
                 src={siteConfig.customLogoUrl}
                 alt={siteConfig.siteName}
-                className="h-12 max-w-[140px] object-contain rounded-2xl bg-white/10 p-1 border border-white/10 shadow-lg"
+                className="h-12 max-w-[8.75rem] object-contain rounded-2xl bg-white/10 p-1 border border-white/10 shadow-lg"
               />
             ) : (
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center text-white shadow-lg border border-red-500">
@@ -226,7 +226,7 @@ export const AdminPanel: React.FC = () => {
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight">
                   Pannel d'Administration <span translate="no" className="notranslate">Gomarché</span> Goma
                 </h1>
-                <span className="bg-red-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                <span className="bg-red-600 text-white text-[0.625rem] font-black uppercase px-2 py-0.5 rounded-full">
                   Propriétaire
                 </span>
               </div>
@@ -539,7 +539,7 @@ export const AdminPanel: React.FC = () => {
                           style={{ backgroundColor: preset.secondary }}
                         />
                         {isCurrent && (
-                          <span className="ml-auto text-[10px] font-black uppercase text-white bg-gray-900 px-2 py-0.5 rounded-full">
+                          <span className="ml-auto text-[0.625rem] font-black uppercase text-white bg-gray-900 px-2 py-0.5 rounded-full">
                             Actif
                           </span>
                         )}
@@ -559,7 +559,7 @@ export const AdminPanel: React.FC = () => {
                     <span className="text-xs font-bold text-gray-800 uppercase block">
                       Logo Officiel du Supermarché
                     </span>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="text-[0.625rem] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" /> Synchronisé tous appareils
                     </span>
                   </div>
@@ -571,7 +571,7 @@ export const AdminPanel: React.FC = () => {
                         <img
                           src={siteConfig.customLogoUrl}
                           alt="Logo actuel"
-                          className="h-12 max-w-[140px] object-contain rounded-lg border border-gray-100 p-1"
+                          className="h-12 max-w-[8.75rem] object-contain rounded-lg border border-gray-100 p-1"
                         />
                       ) : (
                         <div
@@ -585,7 +585,7 @@ export const AdminPanel: React.FC = () => {
                         <span className="text-xs font-bold text-gray-900 block truncate">
                           {siteConfig.customLogoUrl ? 'Logo personnalisé actif' : 'Logo Gomarché par défaut'}
                         </span>
-                        <span className="text-[10px] text-gray-500 block truncate">
+                        <span className="text-[0.625rem] text-gray-500 block truncate">
                           Visible sur Header, Drawer, Footer & Reçus
                         </span>
                       </div>
@@ -598,7 +598,7 @@ export const AdminPanel: React.FC = () => {
                           updateSiteConfig({ customLogoUrl: '' });
                           showSaveSuccess();
                         }}
-                        className="text-[11px] text-red-600 hover:text-red-800 font-bold px-2 py-1 rounded bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                        className="text-[0.6875rem] text-red-600 hover:text-red-800 font-bold px-2 py-1 rounded bg-red-50 hover:bg-red-100 transition-colors shrink-0"
                       >
                         Réinitialiser
                       </button>
@@ -607,7 +607,7 @@ export const AdminPanel: React.FC = () => {
 
                   {/* Upload file or URL */}
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-semibold text-gray-700">
+                    <label className="block text-[0.6875rem] font-semibold text-gray-700">
                       Uploader une photo / logo depuis vos fichiers :
                     </label>
                     <label className="flex items-center justify-center gap-2 w-full py-2.5 px-3 bg-white border border-dashed border-gray-300 hover:border-gray-400 rounded-xl cursor-pointer text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs">
@@ -636,7 +636,7 @@ export const AdminPanel: React.FC = () => {
                     </label>
 
                     <div className="pt-1">
-                      <span className="text-[10px] font-semibold text-gray-500 block mb-1">
+                      <span className="text-[0.625rem] font-semibold text-gray-500 block mb-1">
                         Ou saisir un lien URL web alternatif :
                       </span>
                       <input
@@ -656,7 +656,7 @@ export const AdminPanel: React.FC = () => {
                     <span className="text-xs font-bold text-gray-800 uppercase block">
                       Icône Application Mobile (PWA & Écran d'accueil)
                     </span>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="text-[0.625rem] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                       <Smartphone className="w-3 h-3" /> Android & iPhone
                     </span>
                   </div>
@@ -679,7 +679,7 @@ export const AdminPanel: React.FC = () => {
                         <span className="text-xs font-bold text-gray-900 block truncate">
                           {siteConfig.pwaIconUrl ? 'Icône PWA personnalisée' : 'Icône PWA par défaut'}
                         </span>
-                        <span className="text-[10px] text-gray-500 block truncate">
+                        <span className="text-[0.625rem] text-gray-500 block truncate">
                           Installée sur l'écran d'accueil smartphones à Goma
                         </span>
                       </div>
@@ -692,7 +692,7 @@ export const AdminPanel: React.FC = () => {
                           updateSiteConfig({ pwaIconUrl: '' });
                           showSaveSuccess();
                         }}
-                        className="text-[11px] text-red-600 hover:text-red-800 font-bold px-2 py-1 rounded bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                        className="text-[0.6875rem] text-red-600 hover:text-red-800 font-bold px-2 py-1 rounded bg-red-50 hover:bg-red-100 transition-colors shrink-0"
                       >
                         Réinitialiser
                       </button>
@@ -701,7 +701,7 @@ export const AdminPanel: React.FC = () => {
 
                   {/* Upload file or URL */}
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-semibold text-gray-700">
+                    <label className="block text-[0.6875rem] font-semibold text-gray-700">
                       Uploader l'icône de l'application depuis cet appareil :
                     </label>
                     <label className="flex items-center justify-center gap-2 w-full py-2.5 px-3 bg-white border border-dashed border-gray-300 hover:border-gray-400 rounded-xl cursor-pointer text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs">
@@ -730,7 +730,7 @@ export const AdminPanel: React.FC = () => {
                     </label>
 
                     <div className="pt-1">
-                      <span className="text-[10px] font-semibold text-gray-500 block mb-1">
+                      <span className="text-[0.625rem] font-semibold text-gray-500 block mb-1">
                         Ou saisir un lien URL web alternatif :
                       </span>
                       <input
@@ -831,12 +831,12 @@ export const AdminPanel: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <h4 className="font-black text-sm text-gray-900 truncate">{cat.name}</h4>
                           {cat.isPromoCategory && (
-                            <span className="text-[9px] font-black uppercase bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                            <span className="text-[0.5625rem] font-black uppercase bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
                               Promo
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-gray-500 line-clamp-2 mt-0.5">
+                        <p className="text-[0.6875rem] text-gray-500 line-clamp-2 mt-0.5">
                           {cat.description}
                         </p>
                       </div>
@@ -909,7 +909,7 @@ export const AdminPanel: React.FC = () => {
             <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase font-bold text-[10px]">
+                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase font-bold text-[0.625rem]">
                     <tr>
                       <th className="p-3.5">Produit</th>
                       <th className="p-3.5">Prix USD</th>
@@ -929,10 +929,10 @@ export const AdminPanel: React.FC = () => {
                             className="w-10 h-10 object-contain rounded-lg bg-gray-50 p-1 border border-gray-200 shrink-0"
                           />
                           <div>
-                            <span className="font-bold text-gray-900 block truncate max-w-[200px]">
+                            <span className="font-bold text-gray-900 block truncate max-w-[12.5rem]">
                               {p.name}
                             </span>
-                            <span className="text-[10px] text-gray-400 font-semibold">
+                            <span className="text-[0.625rem] text-gray-400 font-semibold">
                               {p.brand} • {p.unit}
                             </span>
                           </div>
@@ -943,7 +943,7 @@ export const AdminPanel: React.FC = () => {
                         </td>
                         <td className="p-3.5">
                           {p.discountPercent ? (
-                            <span className="bg-red-100 text-red-700 font-black px-2 py-0.5 rounded text-[10px]">
+                            <span className="bg-red-100 text-red-700 font-black px-2 py-0.5 rounded text-[0.625rem]">
                               -{p.discountPercent}%
                             </span>
                           ) : (

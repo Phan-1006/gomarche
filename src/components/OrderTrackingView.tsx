@@ -43,7 +43,7 @@ const Progress: React.FC<{ order: Order }> = ({ order }) => {
       {steps.map((s, i) => (
         <li key={s.status} className="flex-1 min-w-0">
           <div className={`h-1.5 rounded-full ${i <= current ? 'bg-emerald-500' : 'bg-gray-200'}`} />
-          <span className={`block mt-1 text-[10px] font-bold truncate ${i === current ? 'text-gray-900' : 'text-gray-400'}`}>
+          <span className={`block mt-1 text-[0.625rem] font-bold truncate ${i === current ? 'text-gray-900' : 'text-gray-400'}`}>
             {s.status === 'delivered' && order.deliveryMode === 'drive' ? 'Retirée' : s.label}
           </span>
         </li>
@@ -146,7 +146,7 @@ const OrderDetail: React.FC<{ order: Order }> = ({ order }) => {
                   <Truck className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-black uppercase text-gray-400">Votre livreur</span>
+                  <span className="text-[0.625rem] font-black uppercase text-gray-400">Votre livreur</span>
                   <p className="text-sm font-black text-gray-900">{order.deliveryDriverName}</p>
                 </div>
               </div>
@@ -171,7 +171,7 @@ const OrderDetail: React.FC<{ order: Order }> = ({ order }) => {
           {isActiveOrder(order) && order.confirmationCode && (
             <div className="bg-amber-50 rounded-3xl p-5 border-2 border-amber-200 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1">
+                <span className="text-[0.625rem] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" /> Code de remise
                 </span>
                 <span className="font-mono text-3xl font-black text-gray-900 tracking-widest">{order.confirmationCode}</span>
@@ -181,7 +181,7 @@ const OrderDetail: React.FC<{ order: Order }> = ({ order }) => {
               </div>
               {cash && (
                 <div className="text-right">
-                  <span className="text-[10px] font-black uppercase text-gray-500 flex items-center gap-1 justify-end">
+                  <span className="text-[0.625rem] font-black uppercase text-gray-500 flex items-center gap-1 justify-end">
                     <Banknote className="w-3.5 h-3.5" /> À payer en espèces à la remise
                   </span>
                   <span className="text-xl font-black text-gray-900">{formatPrice(cash.amountUsd, 'USD')}</span>
@@ -327,7 +327,7 @@ export const OrderTrackingView: React.FC = () => {
                   <span className="font-mono font-bold text-base text-gray-900">{ord.orderNumber}</span>
                   <span className="text-xs text-gray-400"> • {formatDateTime(ord.createdAt)}</span>
                   {!!ord.unreadHint && (
-                    <span className="ml-2 inline-flex items-center gap-1 bg-red-500 text-white rounded-full px-2 py-0.5 text-[10px] font-black align-middle">
+                    <span className="ml-2 inline-flex items-center gap-1 bg-red-500 text-white rounded-full px-2 py-0.5 text-[0.625rem] font-black align-middle">
                       {ord.unreadHint} nouveau{ord.unreadHint > 1 ? 'x' : ''} message{ord.unreadHint > 1 ? 's' : ''}
                     </span>
                   )}

@@ -62,7 +62,7 @@ export const ProductDetailModal: React.FC = () => {
                   {selectedProduct.brand}
                 </span>
                 {selectedProduct.origin && (
-                  <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-semibold text-[10px]">
+                  <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-semibold text-[0.625rem]">
                     Origine : {selectedProduct.origin}
                   </span>
                 )}
@@ -138,7 +138,7 @@ export const ProductDetailModal: React.FC = () => {
                 </button>
               </div>
 
-              <div className="flex items-center justify-between text-[10px] text-gray-500 pt-2">
+              <div className="flex items-center justify-between text-[0.625rem] text-gray-500 pt-2">
                 <span className="flex items-center gap-1">
                   <Truck className="w-3 h-3 text-emerald-600" />
                   Livraison express en 2h à Goma

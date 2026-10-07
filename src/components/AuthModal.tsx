@@ -5,7 +5,7 @@ import { useBotGuard } from './BotGuard';
 import { TermsLink } from './TermsLink';
 
 const GoogleIcon = () => (
-  <span aria-hidden="true" className="w-5 h-5 rounded-full bg-white border border-gray-300 text-[13px] font-black text-[#4285F4] flex items-center justify-center">
+  <span aria-hidden="true" className="w-5 h-5 rounded-full bg-white border border-gray-300 text-[0.8125rem] font-black text-[#4285F4] flex items-center justify-center">
     G
   </span>
 );
@@ -140,7 +140,7 @@ export const AuthModal: React.FC = () => {
           <span>Continuer avec Google</span>
         </button>
 
-        <div className="flex items-center gap-3 text-[11px] text-gray-400 font-bold uppercase">
+        <div className="flex items-center gap-3 text-[0.6875rem] text-gray-400 font-bold uppercase">
           <span className="flex-1 h-px bg-gray-200" />
           ou par e-mail
           <span className="flex-1 h-px bg-gray-200" />
@@ -241,13 +241,13 @@ export const AuthModal: React.FC = () => {
         )}
 
         {withAccount && (
-          <p className="text-[11px] text-center text-gray-500">
+          <p className="text-[0.6875rem] text-center text-gray-500">
             En continuant avec Google, vous acceptez les règles et conditions d’utilisation. <TermsLink>En savoir plus</TermsLink>
           </p>
         )}
 
         {withAccount && (
-        <p className="text-[11px] text-gray-500 bg-gray-50 rounded-xl p-3 flex items-start gap-2">
+        <p className="text-[0.6875rem] text-gray-500 bg-gray-50 rounded-xl p-3 flex items-start gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>
             Employé ? Utilisez Google avec l’adresse enregistrée par l’administrateur, ou le mot de passe qu’il vous a remis.

@@ -75,14 +75,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, prominent = f
 
             {/* Origin Badge */}
             {product.origin && (
-              <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-xs text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-gray-200 shadow-xs">
+              <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-xs text-gray-700 text-[0.625rem] font-bold px-2 py-0.5 rounded-full border border-gray-200 shadow-xs">
                 {product.origin}
               </span>
             )}
 
             {/* Stock alert */}
             {product.stockCount <= 10 && product.stockCount > 0 && (
-              <span className="absolute bottom-2 left-2 bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-md">
+              <span className="absolute bottom-2 left-2 bg-amber-100 text-amber-900 text-[0.625rem] font-bold px-2 py-0.5 rounded-md">
                 Plus que {product.stockCount} en stock
               </span>
             )}
@@ -90,7 +90,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, prominent = f
         </div>
 
         {/* Brand & Category Info */}
-        <div className="mb-1 flex items-center justify-between text-[11px] text-gray-500">
+        <div className="mb-1 flex items-center justify-between text-[0.6875rem] text-gray-500">
           <span className="font-semibold text-gray-600 truncate uppercase tracking-wider">
             {product.brand}
           </span>
@@ -98,7 +98,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, prominent = f
           <div className="flex items-center gap-1 text-amber-500 font-bold shrink-0">
             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
             <span>{product.rating.toFixed(1)}</span>
-            <span className="text-gray-400 text-[10px]">({product.reviewCount})</span>
+            <span className="text-gray-400 text-[0.625rem]">({product.reviewCount})</span>
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, prominent = f
 
         {/* Unit indication (e.g. "au kg", "bouteille 1.5L") */}
         {product.unit && (
-          <p className="text-[11px] text-gray-500 mb-2 truncate">
+          <p className="text-[0.6875rem] text-gray-500 mb-2 truncate">
             {product.unit}
           </p>
         )}
@@ -144,7 +144,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, prominent = f
             </div>
 
             {/* Secondary currency preview */}
-            <p className="text-[10px] text-gray-500 font-medium leading-none">
+            <p className="text-[0.625rem] text-gray-500 font-medium leading-none">
               soit {secondaryDisplay}
             </p>
           </div>

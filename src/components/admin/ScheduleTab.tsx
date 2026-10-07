@@ -79,7 +79,7 @@ export const ScheduleTab: React.FC = () => {
             <input id="sh-days" type="number" min={0} max={14} className={inputClass} value={hours.daysAhead} onChange={(e) => setHours({ ...hours, daysAhead: Number(e.target.value) })} />
           </div>
         </div>
-        <p className="text-[11px] text-gray-500">
+        <p className="text-[0.6875rem] text-gray-500">
           « Préparation » : temps minimal entre la commande et la fin du créneau. Avec 45 min, le créneau 12h00–14h30 reste commandable jusqu’à 13h45.
         </p>
 
@@ -124,7 +124,7 @@ export const ScheduleTab: React.FC = () => {
           {slots.map((slot) => (
             <div key={slot.id} className={`grid grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto_auto] gap-3 items-end p-4 rounded-2xl border ${slot.active ? 'border-gray-200 bg-white' : 'border-gray-200 bg-gray-50 opacity-70'}`}>
               <div className="col-span-2 lg:col-span-1">
-                <label className="block text-[11px] font-bold text-gray-600 mb-1">
+                <label className="block text-[0.6875rem] font-bold text-gray-600 mb-1">
                   {slot.isExpress ? (
                     <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-red-600" /> Express (pendant les heures de service)</span>
                   ) : (
@@ -138,17 +138,17 @@ export const ScheduleTab: React.FC = () => {
               ) : (
                 <>
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-600 mb-1">Début</label>
+                    <label className="block text-[0.6875rem] font-bold text-gray-600 mb-1">Début</label>
                     <input aria-label="Heure de début" type="time" className={inputClass} value={slot.startTime} onChange={(e) => setSlot(slot.id, { startTime: e.target.value })} />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-600 mb-1">Fin</label>
+                    <label className="block text-[0.6875rem] font-bold text-gray-600 mb-1">Fin</label>
                     <input aria-label="Heure de fin" type="time" className={inputClass} value={slot.endTime} onChange={(e) => setSlot(slot.id, { endTime: e.target.value })} />
                   </div>
                 </>
               )}
               <div>
-                <label className="block text-[11px] font-bold text-gray-600 mb-1">Frais ($)</label>
+                <label className="block text-[0.6875rem] font-bold text-gray-600 mb-1">Frais ($)</label>
                 <input aria-label="Frais de livraison en dollars" type="number" min={0} step={0.5} className={inputClass} value={slot.priceUsd} onChange={(e) => setSlot(slot.id, { priceUsd: Number(e.target.value) })} />
               </div>
               <label className="flex items-center gap-2 text-xs font-bold text-gray-700 pb-2.5 cursor-pointer">

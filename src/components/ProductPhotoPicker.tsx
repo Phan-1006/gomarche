@@ -85,7 +85,7 @@ export const ProductPhotoPicker: React.FC<ProductPhotoPickerProps> = ({ image, o
     />
   );
 
-  const actionClass = 'flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-[11px] font-bold cursor-pointer transition-colors text-center';
+  const actionClass = 'flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-[0.6875rem] font-bold cursor-pointer transition-colors text-center';
 
   return (
     <div className="space-y-2 pt-1 border-t border-gray-100">
@@ -94,7 +94,7 @@ export const ProductPhotoPicker: React.FC<ProductPhotoPickerProps> = ({ image, o
       {image && (
         <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-200">
           <img src={image} alt="Aperçu" className="w-14 h-14 rounded-lg object-contain bg-white border border-gray-200 p-0.5" />
-          <span className="min-w-0 flex-1 text-[10px] text-gray-500 truncate">{image}</span>
+          <span className="min-w-0 flex-1 text-[0.625rem] text-gray-500 truncate">{image}</span>
           <button type="button" onClick={() => onImage('')} className="p-1 text-red-500 hover:text-red-700" aria-label="Retirer la photo">
             <Trash2 className="w-4 h-4" />
           </button>
@@ -126,9 +126,9 @@ export const ProductPhotoPicker: React.FC<ProductPhotoPickerProps> = ({ image, o
         </label>
       </div>
 
-      {busy === 'lens' && <p className="text-[11px] text-gray-500">Reconnaissance du produit et recherche de photos en cours...</p>}
+      {busy === 'lens' && <p className="text-[0.6875rem] text-gray-500">Reconnaissance du produit et recherche de photos en cours...</p>}
       {message && (
-        <p className="text-[11px] font-bold text-gray-700 flex items-center gap-1.5">
+        <p className="text-[0.6875rem] font-bold text-gray-700 flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
           {message}
         </p>
@@ -136,7 +136,7 @@ export const ProductPhotoPicker: React.FC<ProductPhotoPickerProps> = ({ image, o
 
       {images && images.length > 0 && (
         <div>
-          <span className="text-[10px] text-gray-500 font-semibold">Touchez la photo qui vous plaît : son lien est copié dans la fiche.</span>
+          <span className="text-[0.625rem] text-gray-500 font-semibold">Touchez la photo qui vous plaît : son lien est copié dans la fiche.</span>
           <div className="grid grid-cols-4 gap-2 mt-1 max-h-48 overflow-y-auto">
             {images.map((img) => {
               const selected = image === img.url;

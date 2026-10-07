@@ -82,7 +82,7 @@ export const Footer: React.FC = () => {
               <img
                 src={siteConfig.customLogoUrl}
                 alt={siteConfig.siteName}
-                className="h-12 max-w-[180px] object-contain rounded-xl bg-white/95 p-1.5 shadow-sm"
+                className="h-12 max-w-[11.25rem] object-contain rounded-xl bg-white/95 p-1.5 shadow-sm"
               />
             ) : (
               <div
@@ -94,7 +94,7 @@ export const Footer: React.FC = () => {
             )}
             <div>
               <span translate="no" className="notranslate text-2xl font-black text-white">Gomarché Goma</span>
-              <span className="text-[10px] uppercase font-bold text-gray-400 block -mt-1">
+              <span className="text-[0.625rem] uppercase font-bold text-gray-400 block -mt-1">
                 Le Supermarché en Ligne à Goma
               </span>
             </div>

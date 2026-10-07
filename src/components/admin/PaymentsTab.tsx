@@ -79,24 +79,24 @@ export const PaymentsTab: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-600 mb-1">Numéro marchand *</label>
+                  <label className="block text-[0.6875rem] font-bold text-gray-600 mb-1">Numéro marchand *</label>
                   <input aria-label={`Numéro marchand ${METHOD_LABELS[method]}`} inputMode="tel" className={`${inputClass} font-mono`} value={g.merchantNumber} onChange={(e) => setGateway(key, { merchantNumber: e.target.value })} placeholder="+243 8XX XXX XXX" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-600 mb-1">Nom du bénéficiaire</label>
+                  <label className="block text-[0.6875rem] font-bold text-gray-600 mb-1">Nom du bénéficiaire</label>
                   <input aria-label="Nom du bénéficiaire" className={inputClass} value={g.merchantName} onChange={(e) => setGateway(key, { merchantName: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-600 mb-1">Nom affiché</label>
+                  <label className="block text-[0.6875rem] font-bold text-gray-600 mb-1">Nom affiché</label>
                   <input aria-label="Nom affiché" className={inputClass} value={g.displayName || ''} onChange={(e) => setGateway(key, { displayName: e.target.value })} placeholder={METHOD_LABELS[method]} />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-600 mb-1">Préfixes</label>
+                  <label className="block text-[0.6875rem] font-bold text-gray-600 mb-1">Préfixes</label>
                   <input aria-label="Préfixes" className={inputClass} value={g.phonePrefix} onChange={(e) => setGateway(key, { phonePrefix: e.target.value })} />
                 </div>
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-gray-600 mb-1">Consigne affichée au client (facultatif)</label>
+                <label className="block text-[0.6875rem] font-bold text-gray-600 mb-1">Consigne affichée au client (facultatif)</label>
                 <input aria-label="Consigne" className={inputClass} value={g.instructions || ''} onChange={(e) => setGateway(key, { instructions: e.target.value })} placeholder="Ex : composez *1122# puis Payer un marchand" />
               </div>
               <label className="inline-flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer border border-dashed border-gray-300 rounded-xl px-3 py-2 hover:bg-gray-50">
@@ -141,7 +141,7 @@ export const PaymentsTab: React.FC = () => {
         <div>
           <label htmlFor="pay-timeout" className="block text-sm font-black text-gray-900">Délai de paiement (minutes)</label>
           <span className="block text-xs text-gray-500 mb-1.5">Passé ce délai sans paiement, la commande est annulée.</span>
-          <input id="pay-timeout" type="number" min={10} max={1440} className={`${inputClass} max-w-[140px]`} value={timeout} onChange={(e) => setTimeoutMinutes(Number(e.target.value))} />
+          <input id="pay-timeout" type="number" min={10} max={1440} className={`${inputClass} max-w-[8.75rem]`} value={timeout} onChange={(e) => setTimeoutMinutes(Number(e.target.value))} />
         </div>
       </div>
 

@@ -99,11 +99,11 @@ export const Header: React.FC = () => {
           <div className="flex items-center gap-5">
             {/* Currency Switcher */}
             <div className="flex items-center gap-1 bg-gray-800/90 rounded-lg px-2 py-0.5 border border-gray-700">
-              <span className="text-gray-400 text-[11px]">Devise :</span>
+              <span className="text-gray-400 text-[0.6875rem]">Devise :</span>
               <button
                 type="button"
                 onClick={() => setCurrency('USD')}
-                className={`px-1.5 py-0.5 rounded text-[11px] font-bold transition-colors ${
+                className={`px-1.5 py-0.5 rounded text-[0.6875rem] font-bold transition-colors ${
                   currency === 'USD' ? 'bg-[#E2001A] text-white' : 'text-gray-300 hover:text-white'
                 }`}
               >
@@ -112,13 +112,13 @@ export const Header: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrency('CDF')}
-                className={`px-1.5 py-0.5 rounded text-[11px] font-bold transition-colors ${
+                className={`px-1.5 py-0.5 rounded text-[0.6875rem] font-bold transition-colors ${
                   currency === 'CDF' ? 'bg-[#E2001A] text-white' : 'text-gray-300 hover:text-white'
                 }`}
               >
                 CDF (FC)
               </button>
-              <span className="text-gray-400 text-[10px] ml-1">
+              <span className="text-gray-400 text-[0.625rem] ml-1">
                 (1$ = {siteConfig.exchangeRateUsdToCdf.toLocaleString()} FC)
               </span>
             </div>
@@ -128,7 +128,7 @@ export const Header: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDeliveryMode('delivery')}
-                className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-semibold transition-colors ${
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[0.6875rem] font-semibold transition-colors ${
                   deliveryMode === 'delivery' ? 'bg-white text-gray-900 font-bold shadow-xs' : 'text-gray-300 hover:text-white'
                 }`}
               >
@@ -138,7 +138,7 @@ export const Header: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDeliveryMode('drive')}
-                className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-semibold transition-colors ${
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[0.6875rem] font-semibold transition-colors ${
                   deliveryMode === 'drive' ? 'bg-white text-gray-900 font-bold shadow-xs' : 'text-gray-300 hover:text-white'
                 }`}
               >
@@ -148,19 +148,19 @@ export const Header: React.FC = () => {
             </div>
 
             {/* Secure Role Badges (Only shown to authenticated staff) */}
-            <div className="flex items-center gap-2 text-[11px]">
+            <div className="flex items-center gap-2 text-[0.6875rem]">
               {staffLinks[0] && (
                 <button
                   type="button"
                   onClick={() => setActiveView(staffLinks[0].view)}
-                  className="bg-white/10 text-white border border-white/30 rounded-lg px-2.5 py-1 text-[11px] font-bold flex items-center gap-1.5 hover:bg-white/20 transition-colors"
+                  className="bg-white/10 text-white border border-white/30 rounded-lg px-2.5 py-1 text-[0.6875rem] font-bold flex items-center gap-1.5 hover:bg-white/20 transition-colors"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                   <span>{staffLinks[0].label}</span>
                 </button>
               )}
               {staffLinks.length === 0 && (
-                <span className="text-gray-300 text-[11px] flex items-center gap-1.5">
+                <span className="text-gray-300 text-[0.6875rem] flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="hidden lg:inline text-gray-400">Assistance Goma :</span>
                   <strong className="text-white">{siteConfig.storePhone}</strong>
@@ -227,12 +227,12 @@ export const Header: React.FC = () => {
                     marché
                   </span>
                   <span
-                    className="text-[9px] sm:text-xs md:text-sm font-black uppercase tracking-wider text-emerald-600 ml-1 sm:ml-2 px-1.5 py-0.2 bg-emerald-50 rounded-md sm:rounded-lg border border-emerald-200"
+                    className="text-[0.5625rem] sm:text-xs md:text-sm font-black uppercase tracking-wider text-emerald-600 ml-1 sm:ml-2 px-1.5 py-0.2 bg-emerald-50 rounded-md sm:rounded-lg border border-emerald-200"
                   >
                     Goma
                   </span>
                 </div>
-                <span className="text-[9px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 hidden sm:block">
+                <span className="text-[0.5625rem] sm:text-[0.6875rem] uppercase tracking-wider font-bold text-gray-500 hidden sm:block">
                   Supermarché en Ligne • Service Exclusif Goma
                 </span>
               </div>
@@ -327,7 +327,7 @@ export const Header: React.FC = () => {
                   </div>
                 )}
                 {currentUser?.role === 'admin' && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 border-2 border-white rounded-full flex items-center justify-center text-[9px] text-white font-bold">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 border-2 border-white rounded-full flex items-center justify-center text-[0.5625rem] text-white font-bold">
                     ★
                   </span>
                 )}
@@ -337,11 +337,11 @@ export const Header: React.FC = () => {
                 <span className="text-xs text-gray-500 font-medium leading-none">
                   {currentUser ? 'Bonjour,' : 'Bienvenue,'}
                 </span>
-                <span className="text-sm font-bold text-gray-900 leading-tight truncate max-w-[120px]">
+                <span className="text-sm font-bold text-gray-900 leading-tight truncate max-w-[7.5rem]">
                   {currentUser ? currentUser.name.split(' ')[0] : 'Mon Compte'}
                 </span>
                 {currentUser && (
-                  <span className="text-[10px] text-emerald-600 font-bold leading-none mt-0.5">
+                  <span className="text-[0.625rem] text-emerald-600 font-bold leading-none mt-0.5">
                     {currentUser.loyaltyPoints} pts Club
                   </span>
                 )}
@@ -357,7 +357,7 @@ export const Header: React.FC = () => {
                     <div className="px-5 py-2.5 border-b border-gray-100 mb-1">
                       <p className="text-sm font-bold text-gray-900">{currentUser.name}</p>
                       <div className="mt-1 flex items-center justify-between">
-                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-[#E2001A]">
+                        <span className="text-[0.6875rem] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-[#E2001A]">
                           {ROLE_LABELS[currentUser.role]}
                         </span>
                         <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
@@ -453,7 +453,7 @@ export const Header: React.FC = () => {
               )}
             </div>
             <div className="hidden sm:flex flex-col text-left leading-tight">
-              <span className="text-[10px] font-normal uppercase tracking-wider text-red-100">
+              <span className="text-[0.625rem] font-normal uppercase tracking-wider text-red-100">
                 Panier
               </span>
               <span className="text-xs font-black">
@@ -509,7 +509,7 @@ export const Header: React.FC = () => {
 
             {isRayonsDropdownOpen && (
               <div className="absolute left-4 top-full mt-1 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50">
-                <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                <div className="px-4 py-1.5 text-[0.6875rem] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
                   Rayons Disponibles à Goma
                 </div>
                 {categories.map((cat) => (
@@ -525,7 +525,7 @@ export const Header: React.FC = () => {
                   >
                     <span>{cat.name}</span>
                     {cat.isPromoCategory && (
-                      <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">
+                      <span className="text-[0.625rem] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">
                         Promo
                       </span>
                     )}
@@ -567,7 +567,7 @@ export const Header: React.FC = () => {
           </div>
 
           {/* Payment Badges Goma */}
-          <div className="hidden lg:flex items-center gap-1.5 text-gray-400 text-[11px] shrink-0">
+          <div className="hidden lg:flex items-center gap-1.5 text-gray-400 text-[0.6875rem] shrink-0">
             <span className="text-gray-500 font-medium mr-1">Paiements Goma :</span>
             <AirtelMoneyLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.airtel?.customLogoUrl} />
             <OrangeMoneyLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.orange?.customLogoUrl} />
@@ -588,7 +588,7 @@ export const Header: React.FC = () => {
                     <img
                       src={siteConfig.customLogoUrl}
                       alt={siteConfig.siteName}
-                      className="h-10 max-w-[120px] object-contain rounded-xl"
+                      className="h-10 max-w-[7.5rem] object-contain rounded-xl"
                     />
                   ) : (
                     <div
@@ -600,7 +600,7 @@ export const Header: React.FC = () => {
                   )}
                   <div>
                     <span translate="no" className="notranslate font-black text-xl text-gray-900 block leading-tight">Gomarché</span>
-                    <span className="text-[10px] font-bold text-emerald-600 uppercase">Supermarché Goma</span>
+                    <span className="text-[0.625rem] font-bold text-emerald-600 uppercase">Supermarché Goma</span>
                   </div>
                 </div>
                 <button
@@ -674,7 +674,7 @@ export const Header: React.FC = () => {
             </div>
 
             <div className="pt-4 border-t border-gray-100">
-              <p className="text-[11px] text-gray-500 mb-2 font-semibold">Paiement Mobile Money instantané :</p>
+              <p className="text-[0.6875rem] text-gray-500 mb-2 font-semibold">Paiement Mobile Money instantané :</p>
               <div className="flex flex-wrap gap-1.5">
                 <AirtelMoneyLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.airtel?.customLogoUrl} />
                 <OrangeMoneyLogo size="sm" showText={false} customLogoUrl={siteConfig.paymentGateways?.orange?.customLogoUrl} />

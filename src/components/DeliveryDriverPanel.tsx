@@ -207,7 +207,7 @@ export const DeliveryDriverPanel: React.FC = () => {
                       >
                         <MessageCircle className="w-3.5 h-3.5" />
                         <span>{open ? 'Fermer' : 'Carte & messages'}</span>
-                        {!open && !!order.unreadHint && <span className="bg-red-500 text-white rounded-full px-1.5 text-[10px]">{order.unreadHint}</span>}
+                        {!open && !!order.unreadHint && <span className="bg-red-500 text-white rounded-full px-1.5 text-[0.625rem]">{order.unreadHint}</span>}
                       </button>
                       {order.customer.coordinates && (
                         <a href={directionsUrl(order.customer.coordinates)} target="_blank" rel="noreferrer" className="px-4 py-2.5 border border-gray-300 text-gray-800 font-bold text-xs rounded-xl flex items-center gap-1.5">

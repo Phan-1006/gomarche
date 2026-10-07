@@ -47,12 +47,12 @@ export const StaffShell: React.FC<StaffShellProps> = ({ roles, title, subtitle, 
         <div className="page-width mx-auto px-4 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {siteConfig.customLogoUrl && (
-              <img src={siteConfig.customLogoUrl} alt="" className="h-11 max-w-[120px] object-contain rounded-2xl bg-white/10 p-1 border border-white/10" />
+              <img src={siteConfig.customLogoUrl} alt="" className="h-11 max-w-[7.5rem] object-contain rounded-2xl bg-white/10 p-1 border border-white/10" />
             )}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-black">{title}</h1>
-                <span className="bg-white/10 text-gray-200 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-white/10">
+                <span className="bg-white/10 text-gray-200 text-[0.625rem] font-black uppercase px-2 py-0.5 rounded-full border border-white/10">
                   {ROLE_LABELS[currentUser.role]}
                 </span>
               </div>

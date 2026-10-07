@@ -296,7 +296,7 @@ export const CheckoutModal: React.FC = () => {
                             onPick={(p) => (inGoma(p) ? setCoordinates(p) : setError('Ce point est en dehors de la zone de livraison de Goma.'))}
                             className="h-56 w-full rounded-2xl overflow-hidden border border-gray-200 z-0"
                           />
-                          <p className="text-[11px] text-gray-500">Touchez la carte à l’endroit exact de la livraison : le livreur y sera guidé.</p>
+                          <p className="text-[0.6875rem] text-gray-500">Touchez la carte à l’endroit exact de la livraison : le livreur y sera guidé.</p>
                         </Suspense>
                       )}
                     </div>
@@ -346,7 +346,7 @@ export const CheckoutModal: React.FC = () => {
 
                 {Object.entries(optionsByDay).map(([day, list]) => (
                   <fieldset key={day} className="space-y-2">
-                    <legend className="text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">{day}</legend>
+                    <legend className="text-[0.6875rem] font-black uppercase tracking-wider text-gray-500 mb-1">{day}</legend>
                     {list.map((o) => {
                       const selected = optionKey === o.key;
                       return (
@@ -362,7 +362,7 @@ export const CheckoutModal: React.FC = () => {
                               <div className="flex flex-wrap items-center gap-1.5">
                                 <span className="text-sm font-bold text-gray-900">{o.label}</span>
                                 {o.recommended && (
-                                  <span className="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full uppercase flex items-center gap-1">
+                                  <span className="text-[0.625rem] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full uppercase flex items-center gap-1">
                                     <Star className="w-3 h-3 fill-white" /> Recommandé
                                   </span>
                                 )}

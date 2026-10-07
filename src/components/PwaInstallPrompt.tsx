@@ -95,7 +95,7 @@ export const PwaInstallPrompt: React.FC = () => {
             <p className="font-bold text-white leading-tight">
               Installez l'application <span translate="no" className="notranslate">{siteConfig.siteName}</span>
             </p>
-            <p className="text-[11px] text-gray-300 hidden sm:block">
+            <p className="text-[0.6875rem] text-gray-300 hidden sm:block">
               Accès rapide depuis votre écran d'accueil, sans passer par le navigateur.
             </p>
           </div>
@@ -124,7 +124,7 @@ export const PwaInstallPrompt: React.FC = () => {
       </div>
 
       {showIosSteps && (
-        <p className="page-width mx-auto mt-2 text-[11px] text-gray-200 flex items-center gap-1.5 flex-wrap">
+        <p className="page-width mx-auto mt-2 text-[0.6875rem] text-gray-200 flex items-center gap-1.5 flex-wrap">
           Touchez <Share className="w-3.5 h-3.5 inline" aria-label="Partager" /> en bas de Safari, puis
           <strong>« Sur l'écran d'accueil »</strong>.
         </p>

@@ -65,7 +65,7 @@ export const CategoryShowcase: React.FC = () => {
               }`}
             >
               {/* Category Image */}
-              <div className="relative h-28 sm:h-36 overflow-hidden bg-gray-100">
+              <div className="relative h-28 sm:h-36 lg:h-auto lg:aspect-[7/5] overflow-hidden bg-gray-100">
                 <img
                   src={cat.image}
                   alt={cat.name}
@@ -76,7 +76,7 @@ export const CategoryShowcase: React.FC = () => {
 
                 {/* Badge if Promo */}
                 {cat.isPromoCategory && (
-                  <span className="absolute top-2 right-2 bg-[#E2001A] text-white text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                  <span className="absolute top-2 right-2 bg-[#E2001A] text-white text-[0.5625rem] sm:text-[0.625rem] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                     <Flame className="w-3 h-3 fill-white" />
                     Promo
                   </span>
@@ -84,7 +84,7 @@ export const CategoryShowcase: React.FC = () => {
 
                 {/* Bottom title inside image on mobile, clean overlay */}
                 <div className="absolute bottom-2 left-2 right-2 text-white">
-                  <span className="text-[10px] text-gray-300 font-semibold block">
+                  <span className="text-[0.625rem] text-gray-300 font-semibold block">
                     {productCount} produit{productCount > 1 ? 's' : ''}
                   </span>
                   <h3 className="text-xs sm:text-sm font-black leading-tight line-clamp-2">
@@ -94,7 +94,7 @@ export const CategoryShowcase: React.FC = () => {
               </div>
 
               {/* Bottom Card Footer: Clean exploration link (NO staff/agent names shown to customers) */}
-              <div className="p-2 sm:p-2.5 bg-white flex items-center justify-between text-[11px] font-bold text-gray-700 group-hover:text-[#E2001A] transition-colors">
+              <div className="p-2 sm:p-2.5 bg-white flex items-center justify-between text-[0.6875rem] font-bold text-gray-700 group-hover:text-[#E2001A] transition-colors">
                 <span className="truncate">Découvrir le rayon</span>
                 <ChevronRight className="w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
               </div>

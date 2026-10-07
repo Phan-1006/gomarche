@@ -97,7 +97,7 @@ export const PrepPanel: React.FC = () => {
                         <img src={item.image} alt="" className="w-11 h-11 rounded-xl object-contain bg-gray-50 border border-gray-200 shrink-0" />
                         <span className="min-w-0 flex-1">
                           <span className={`block text-sm font-bold truncate ${picked[key] ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.name}</span>
-                          <span className="block text-[11px] text-gray-500">{item.brand} • {item.unit}</span>
+                          <span className="block text-[0.6875rem] text-gray-500">{item.brand} • {item.unit}</span>
                         </span>
                         <span className="text-base font-black text-gray-900 bg-gray-100 rounded-xl px-3 py-1 shrink-0">× {item.quantity}</span>
                       </label>

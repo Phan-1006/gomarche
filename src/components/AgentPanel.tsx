@@ -99,7 +99,7 @@ export const AgentPanel: React.FC = () => {
               <img
                 src={siteConfig.customLogoUrl}
                 alt="Logo Gomarché"
-                className="h-12 max-w-[140px] object-contain rounded-2xl bg-white/10 p-1 border border-white/10"
+                className="h-12 max-w-[8.75rem] object-contain rounded-2xl bg-white/10 p-1 border border-white/10"
               />
             ) : (
               <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg font-black text-2xl">
@@ -111,7 +111,7 @@ export const AgentPanel: React.FC = () => {
                 <h1 className="text-xl font-black">
                   Espace Gestionnaire de Rayon <span translate="no" className="notranslate">Gomarché</span>
                 </h1>
-                <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-500/30">
+                <span className="bg-emerald-500/20 text-emerald-300 text-[0.625rem] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-500/30">
                   Agent de Rayon
                 </span>
               </div>
@@ -197,7 +197,7 @@ export const AgentPanel: React.FC = () => {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-gray-50 text-gray-500 uppercase font-bold text-[10px] border-b border-gray-200">
+              <thead className="bg-gray-50 text-gray-500 uppercase font-bold text-[0.625rem] border-b border-gray-200">
                 <tr>
                   <th className="p-3.5">Produit</th>
                   <th className="p-3.5">Prix USD</th>
@@ -218,7 +218,7 @@ export const AgentPanel: React.FC = () => {
                       />
                       <div>
                         <p className="font-bold text-gray-900 line-clamp-1">{prod.name}</p>
-                        <p className="text-[10px] text-gray-400 font-semibold">{prod.brand} • {prod.unit}</p>
+                        <p className="text-[0.625rem] text-gray-400 font-semibold">{prod.brand} • {prod.unit}</p>
                       </div>
                     </td>
                     <td className="p-3.5 font-bold text-gray-900">${prod.priceUsd.toFixed(2)}</td>
@@ -227,7 +227,7 @@ export const AgentPanel: React.FC = () => {
                     </td>
                     <td className="p-3.5">
                       {prod.discountPercent ? (
-                        <span className="bg-red-100 text-red-700 font-black px-2 py-0.5 rounded text-[10px]">
+                        <span className="bg-red-100 text-red-700 font-black px-2 py-0.5 rounded text-[0.625rem]">
                           -{prod.discountPercent}%
                         </span>
                       ) : (
@@ -235,7 +235,7 @@ export const AgentPanel: React.FC = () => {
                       )}
                     </td>
                     <td className="p-3.5">
-                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]">
+                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[0.625rem]">
                         {prod.stockCount} unités
                       </span>
                     </td>

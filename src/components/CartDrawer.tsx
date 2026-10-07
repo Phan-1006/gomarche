@@ -37,7 +37,7 @@ export const CartDrawer: React.FC = () => {
               <img
                 src={siteConfig.customLogoUrl}
                 alt="Logo"
-                className="h-8 max-w-[80px] object-contain rounded-lg p-0.5"
+                className="h-8 max-w-[5rem] object-contain rounded-lg p-0.5"
               />
             ) : (
               <div
@@ -91,7 +91,7 @@ export const CartDrawer: React.FC = () => {
                 </span>
               )}
             </span>
-            <span className="text-[10px] text-gray-500">
+            <span className="text-[0.625rem] text-gray-500">
               Palier : {formatPrice(freeDeliveryThreshold)}
             </span>
           </div>
@@ -145,16 +145,16 @@ export const CartDrawer: React.FC = () => {
                   />
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider truncate">
+                    <p className="text-[0.625rem] text-gray-400 font-semibold uppercase tracking-wider truncate">
                       {item.product.brand}
                     </p>
                     <h4 className="text-xs font-bold text-gray-900 truncate">
                       {item.product.name}
                     </h4>
-                    <p className="text-[11px] font-black text-[#E2001A] mt-0.5">
+                    <p className="text-[0.6875rem] font-black text-[#E2001A] mt-0.5">
                       {formatPrice(discountedPrice)}
                       {item.product.discountPercent && (
-                        <span className="text-[9px] text-gray-400 line-through ml-1 font-normal">
+                        <span className="text-[0.5625rem] text-gray-400 line-through ml-1 font-normal">
                           {formatPrice(item.product.priceUsd)}
                         </span>
                       )}
@@ -240,7 +240,7 @@ export const CartDrawer: React.FC = () => {
 
             {/* Mobile Money Notice */}
             <div className="bg-white p-2.5 rounded-xl border border-gray-200 flex items-center justify-between">
-              <span className="text-[10px] text-gray-600 font-semibold">Paiement Mobile Money instantané :</span>
+              <span className="text-[0.625rem] text-gray-600 font-semibold">Paiement Mobile Money instantané :</span>
               <div className="flex items-center gap-1">
                 <AirtelMoneyLogo size="sm" showText={false} customLogoUrl={gateways.airtel?.customLogoUrl} />
                 <OrangeMoneyLogo size="sm" showText={false} customLogoUrl={gateways.orange?.customLogoUrl} />

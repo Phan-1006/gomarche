@@ -24,7 +24,7 @@ export const HeroCarousel: React.FC = () => {
   return (
     <section className="relative overflow-hidden bg-gray-900 text-white rounded-2xl md:rounded-3xl shadow-xl mx-3 my-3 sm:mx-4 sm:my-4 page-width md:mx-auto">
       {/* Background Image with Gradient Overlay */}
-      <div className="relative min-h-[300px] sm:min-h-[420px] md:min-h-[480px] 2xl:min-h-[560px] min-[2000px]:min-h-[640px] flex items-center">
+      <div className="relative min-h-[18.75rem] sm:min-h-[26.25rem] md:min-h-[30rem] xl:min-h-[min(37vw,62vh)] flex items-center">
         <div className="absolute inset-0 z-0">
           <img
             src={slide.image}
@@ -38,7 +38,7 @@ export const HeroCarousel: React.FC = () => {
         {/* Content Container */}
         <div className="relative z-10 max-w-2xl px-4 sm:px-12 py-6 sm:py-10">
           {/* Badge Tag */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-black tracking-wide uppercase shadow-md mb-2 sm:mb-4"
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[0.625rem] sm:text-xs font-black tracking-wide uppercase shadow-md mb-2 sm:mb-4"
             style={{ backgroundColor: slide.badgeBg || siteConfig.primaryColor || '#E2001A' }}>
             <Tag className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             <span>{slide.tag || 'Offre Spéciale Supermarché'}</span>
@@ -81,7 +81,7 @@ export const HeroCarousel: React.FC = () => {
           </div>
 
           {/* Value props in hero */}
-          <div className="mt-5 sm:mt-8 pt-4 sm:pt-6 border-t border-white/20 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 text-[11px] sm:text-xs text-gray-300">
+          <div className="mt-5 sm:mt-8 pt-4 sm:pt-6 border-t border-white/20 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 text-[0.6875rem] sm:text-xs text-gray-300">
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
               <span className="truncate sm:overflow-visible">Paiement Mobile Money</span>

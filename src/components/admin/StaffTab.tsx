@@ -142,7 +142,7 @@ export const StaffTab: React.FC = () => {
         <div className="max-w-sm">
           <label htmlFor="st-pass" className="block text-xs font-bold text-gray-700 mb-1">Mot de passe provisoire (facultatif)</label>
           <input id="st-pass" type="text" autoComplete="off" minLength={8} className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Seulement s’il n’a pas de compte Google" />
-          <p className="text-[11px] text-gray-500 mt-1">À lui remettre en main propre ; il pourra le changer. Inutile s’il se connecte avec Google.</p>
+          <p className="text-[0.6875rem] text-gray-500 mt-1">À lui remettre en main propre ; il pourra le changer. Inutile s’il se connecte avec Google.</p>
         </div>
 
         {error && (

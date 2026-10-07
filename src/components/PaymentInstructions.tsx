@@ -64,7 +64,7 @@ export const PaymentInstructions: React.FC<{ order: Order }> = ({ order }) => {
     <div className="bg-white border-2 border-amber-300 rounded-3xl p-5 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-wider text-amber-800">{PURPOSE_LABELS[payment.purpose]}</span>
+          <span className="text-[0.625rem] font-black uppercase tracking-wider text-amber-800">{PURPOSE_LABELS[payment.purpose]}</span>
           <p className="text-2xl font-black text-gray-900">
             $ {payment.amountUsd.toFixed(2)}{' '}
             <span className="text-sm font-bold text-gray-500">ou {payment.amountCdf.toLocaleString('fr-FR')} FC</span>
@@ -94,7 +94,7 @@ export const PaymentInstructions: React.FC<{ order: Order }> = ({ order }) => {
             >
               <span>
                 <span className="block font-mono text-lg font-black tracking-wide">{gateway.merchantNumber}</span>
-                <span className="block text-[11px] text-gray-300">Bénéficiaire : {gateway.merchantName}</span>
+                <span className="block text-[0.6875rem] text-gray-300">Bénéficiaire : {gateway.merchantName}</span>
               </span>
               <Copy className="w-4 h-4 text-gray-300" />
             </button>
@@ -160,7 +160,7 @@ export const PaymentInstructions: React.FC<{ order: Order }> = ({ order }) => {
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
           <span>J’ai payé — envoyer la référence</span>
         </button>
-        <p className="text-[11px] text-gray-500 text-center">
+        <p className="text-[0.6875rem] text-gray-500 text-center">
           Sans paiement avant {new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' }).format(expiresAt)}, la commande est
           annulée automatiquement et les articles remis en rayon. Ne communiquez jamais votre code PIN Mobile Money.
         </p>

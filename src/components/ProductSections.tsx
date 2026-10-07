@@ -71,7 +71,7 @@ export const ProductSections: React.FC = () => {
         </div>
 
         {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 min-[2000px]:grid-cols-8 gap-2.5 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 min-[112.5rem]:grid-cols-7 min-[137.5rem]:grid-cols-8 gap-2.5 sm:gap-4">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -90,7 +90,7 @@ export const ProductSections: React.FC = () => {
   }
 
   // Otherwise, render the European supermarket homepage sections as requested in JSON
-  const dealsProducts = products.filter((p) => p.isPromo).slice(0, 4);
+  const dealsProducts = products.filter((p) => p.isPromo).slice(0, 6);
   const essentialsProducts = products.filter((p) => p.isFoodEssential || p.categoryId === 'cat-food');
   const popularProducts = products.filter((p) => p.isPopular).slice(0, 8);
   const newArrivalsProducts = products.filter((p) => p.isNewArrival || p.id === 'prod-6' || p.id === 'prod-9' || p.id === 'prod-15');
@@ -102,7 +102,7 @@ export const ProductSections: React.FC = () => {
         <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 rounded-2xl sm:rounded-3xl p-4 sm:p-8 text-white shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 sm:mb-6 gap-3">
             <div>
-              <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider mb-2">
+              <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[0.625rem] sm:text-xs font-black uppercase tracking-wider mb-2">
                 <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-300 text-amber-300" />
                 <span>Les Prix Choc <span translate="no" className="notranslate">Gomarché</span></span>
               </div>
@@ -125,9 +125,12 @@ export const ProductSections: React.FC = () => {
           </div>
 
           {/* Large promotional product cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
-            {dealsProducts.map((product) => (
-              <ProductCard key={product.id} product={product} prominent={true} />
+          {/* Quatre offres sur un écran courant ; une cinquième puis une sixième sur grand écran. */}
+          <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-5 min-[137.5rem]:grid-cols-6 gap-2.5 sm:gap-4">
+            {dealsProducts.map((product, i) => (
+              <div key={product.id} className={`grid ${i === 4 ? 'hidden 2xl:grid' : i === 5 ? 'hidden min-[137.5rem]:grid' : ''}`}>
+                <ProductCard product={product} prominent={true} />
+              </div>
             ))}
           </div>
         </div>
@@ -189,7 +192,7 @@ export const ProductSections: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 min-[2000px]:grid-cols-6 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 min-[137.5rem]:grid-cols-6 gap-2.5 sm:gap-4">
           {popularProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -213,7 +216,7 @@ export const ProductSections: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 min-[2000px]:grid-cols-6 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 min-[137.5rem]:grid-cols-6 gap-2.5 sm:gap-4">
           {newArrivalsProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

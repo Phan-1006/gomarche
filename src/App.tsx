@@ -77,7 +77,7 @@ const MobileBottomNav: React.FC = () => {
         }`}
       >
         <Home className="w-5 h-5" />
-        <span className="text-[10px] font-bold">Accueil</span>
+        <span className="text-[0.625rem] font-bold">Accueil</span>
       </button>
 
       {/* Promos / Rayons */}
@@ -92,7 +92,7 @@ const MobileBottomNav: React.FC = () => {
         }`}
       >
         <Flame className="w-5 h-5 text-red-600 fill-red-600" />
-        <span className="text-[10px] font-bold">Promos Goma</span>
+        <span className="text-[0.625rem] font-bold">Promos Goma</span>
       </button>
 
       {/* Panier */}
@@ -104,12 +104,12 @@ const MobileBottomNav: React.FC = () => {
         <div className="relative">
           <ShoppingCart className="w-5 h-5 text-gray-800" />
           {cartItemsCount > 0 && (
-            <span className="absolute -top-1.5 -right-2.5 w-4 h-4 rounded-full bg-[#E2001A] text-white text-[9px] font-black flex items-center justify-center border-2 border-white">
+            <span className="absolute -top-1.5 -right-2.5 w-4 h-4 rounded-full bg-[#E2001A] text-white text-[0.5625rem] font-black flex items-center justify-center border-2 border-white">
               {cartItemsCount}
             </span>
           )}
         </div>
-        <span className="text-[10px] font-bold">Panier</span>
+        <span className="text-[0.625rem] font-bold">Panier</span>
       </button>
 
       {/* Suivi Commandes */}
@@ -126,7 +126,7 @@ const MobileBottomNav: React.FC = () => {
         <div className="relative">
           <Clock className="w-5 h-5" />
           {unreadMessages > 0 ? (
-            <span className="absolute -top-2 -right-2.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border border-white">
+            <span className="absolute -top-2 -right-2.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[0.625rem] font-black flex items-center justify-center border border-white">
               {unreadMessages > 9 ? '9+' : unreadMessages}
             </span>
           ) : (
@@ -135,7 +135,7 @@ const MobileBottomNav: React.FC = () => {
             )
           )}
         </div>
-        <span className="text-[10px] font-bold">Mes Courses</span>
+        <span className="text-[0.625rem] font-bold">Mes Courses</span>
       </button>
 
       {/* Compte : ouvre le menu du compte (espaces de travail, commandes, déconnexion) */}
@@ -148,7 +148,7 @@ const MobileBottomNav: React.FC = () => {
         }`}
       >
         <UserIcon className="w-5 h-5" />
-        <span className="text-[10px] font-bold">
+        <span className="text-[0.625rem] font-bold">
           {currentUser ? currentUser.name.split(' ')[0] : 'Compte'}
         </span>
       </button>

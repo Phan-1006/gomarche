@@ -26,12 +26,12 @@ export const VirtualReceipt: React.FC<{ order: Order }> = ({ order }) => {
       <div className="p-5 space-y-4 text-xs">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Client</p>
+            <p className="text-[0.625rem] font-black uppercase text-gray-400 mb-1">Client</p>
             <p className="font-bold text-gray-900">{order.customer.name}</p>
             <p className="text-gray-600">{order.customer.phone}</p>
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase text-gray-400 mb-1">
+            <p className="text-[0.625rem] font-black uppercase text-gray-400 mb-1">
               {order.deliveryMode === 'delivery' ? 'Livraison' : 'Retrait au magasin'}
             </p>
             {order.deliveryMode === 'delivery' && (
@@ -42,7 +42,7 @@ export const VirtualReceipt: React.FC<{ order: Order }> = ({ order }) => {
         </div>
 
         <table className="w-full">
-          <thead className="text-[10px] uppercase text-gray-400 border-b border-gray-200">
+          <thead className="text-[0.625rem] uppercase text-gray-400 border-b border-gray-200">
             <tr>
               <th className="text-left py-1.5 font-black">Article</th>
               <th className="text-right py-1.5 font-black">Qté</th>
@@ -55,7 +55,7 @@ export const VirtualReceipt: React.FC<{ order: Order }> = ({ order }) => {
               <tr key={item.productId}>
                 <td className="py-2">
                   <p className="font-bold text-gray-900">{item.name}</p>
-                  <p className="text-[10px] text-gray-400">{item.brand} • {item.unit}</p>
+                  <p className="text-[0.625rem] text-gray-400">{item.brand} • {item.unit}</p>
                 </td>
                 <td className="py-2 text-right">{item.quantity}</td>
                 <td className="py-2 text-right">$ {item.unitPriceUsd.toFixed(2)}</td>
@@ -83,7 +83,7 @@ export const VirtualReceipt: React.FC<{ order: Order }> = ({ order }) => {
         </div>
 
         <div className="bg-gray-50 rounded-2xl p-3 space-y-1.5">
-          <p className="text-[10px] font-black uppercase text-gray-400">Paiements</p>
+          <p className="text-[0.625rem] font-black uppercase text-gray-400">Paiements</p>
           {order.payments.map((p) => (
             <div key={p.id} className="flex items-center justify-between gap-2">
               <span className="text-gray-700">

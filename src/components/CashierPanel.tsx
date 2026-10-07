@@ -84,9 +84,9 @@ export const CashierPanel: React.FC = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {tiles.map((t) => (
           <div key={t.label} className="bg-white rounded-2xl p-4 border border-gray-200">
-            <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">{t.label}</p>
+            <p className="text-[0.625rem] font-black uppercase tracking-wider text-gray-500">{t.label}</p>
             <p className="text-2xl font-black text-gray-900 mt-1">{t.value}</p>
-            <p className="text-[11px] text-gray-500">{t.hint}</p>
+            <p className="text-[0.6875rem] text-gray-500">{t.hint}</p>
           </div>
         ))}
       </div>
@@ -148,7 +148,7 @@ export const CashierPanel: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <div className="text-right mr-2">
                     <p className="text-base font-black text-gray-900">$ {payment.amountUsd.toFixed(2)}</p>
-                    <p className="text-[11px] text-gray-500">{payment.amountCdf.toLocaleString('fr-FR')} FC</p>
+                    <p className="text-[0.6875rem] text-gray-500">{payment.amountCdf.toLocaleString('fr-FR')} FC</p>
                   </div>
 
                   {(tab === 'verify' || tab === 'pending') && (

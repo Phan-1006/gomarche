@@ -21,9 +21,9 @@ export const AirtelMoneyLogo: React.FC<LogoProps> = ({
   }[size];
 
   const imgHeightClass = {
-    sm: 'h-5 max-w-[80px]',
-    md: 'h-7 max-w-[110px]',
-    lg: 'h-9 max-w-[140px]',
+    sm: 'h-5 max-w-[5rem]',
+    md: 'h-7 max-w-[6.875rem]',
+    lg: 'h-9 max-w-[8.75rem]',
   }[size];
 
   if (customLogoUrl) {
@@ -69,9 +69,9 @@ export const OrangeMoneyLogo: React.FC<LogoProps> = ({
   }[size];
 
   const imgHeightClass = {
-    sm: 'h-5 max-w-[80px]',
-    md: 'h-7 max-w-[110px]',
-    lg: 'h-9 max-w-[140px]',
+    sm: 'h-5 max-w-[5rem]',
+    md: 'h-7 max-w-[6.875rem]',
+    lg: 'h-9 max-w-[8.75rem]',
   }[size];
 
   if (customLogoUrl) {
@@ -116,9 +116,9 @@ export const MpesaLogo: React.FC<LogoProps> = ({
   }[size];
 
   const imgHeightClass = {
-    sm: 'h-5 max-w-[80px]',
-    md: 'h-7 max-w-[110px]',
-    lg: 'h-9 max-w-[140px]',
+    sm: 'h-5 max-w-[5rem]',
+    md: 'h-7 max-w-[6.875rem]',
+    lg: 'h-9 max-w-[8.75rem]',
   }[size];
 
   if (customLogoUrl) {
@@ -163,9 +163,9 @@ export const AfriMoneyLogo: React.FC<LogoProps> = ({
   }[size];
 
   const imgHeightClass = {
-    sm: 'h-5 max-w-[80px]',
-    md: 'h-7 max-w-[110px]',
-    lg: 'h-9 max-w-[140px]',
+    sm: 'h-5 max-w-[5rem]',
+    md: 'h-7 max-w-[6.875rem]',
+    lg: 'h-9 max-w-[8.75rem]',
   }[size];
 
   if (customLogoUrl) {
