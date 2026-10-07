@@ -93,7 +93,7 @@ export const AgentPanel: React.FC = () => {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Top Banner */}
       <div className="bg-[#1C2024] text-white">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="page-width mx-auto px-4 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {siteConfig.customLogoUrl ? (
               <img
@@ -140,7 +140,7 @@ export const AgentPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+      <div className="page-width mx-auto px-4 py-8 space-y-6">
         {/* Rayon Header Card */}
         <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">

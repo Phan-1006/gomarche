@@ -22,7 +22,7 @@ export const Footer: React.FC = () => {
     <footer className="bg-[#161A1D] text-white border-t border-gray-800">
       {/* Value Proposition Banner (Goma Exclusive) */}
       <div className="border-b border-gray-800 bg-[#121517] py-8">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center md:text-left">
+        <div className="page-width mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center md:text-left">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-3">
             <div className="w-12 h-12 rounded-2xl bg-red-600/10 text-[#E2001A] flex items-center justify-center shrink-0 border border-red-600/20">
               <Truck className="w-6 h-6" />
@@ -74,7 +74,7 @@ export const Footer: React.FC = () => {
       </div>
 
       {/* Main Footer Columns */}
-      <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 text-xs">
+      <div className="page-width mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 text-xs">
         {/* Brand column */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center gap-3">
@@ -191,7 +191,7 @@ export const Footer: React.FC = () => {
 
       {/* Bottom Legal */}
       <div className="border-t border-gray-800 bg-[#0E1012] py-4 text-xs text-gray-400">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="page-width mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p>
             © 2026 <span translate="no" className="notranslate">Gomarché</span> Goma • Tous droits réservés •{' '}
             <TermsLink className="underline hover:text-white">Conditions d’utilisation</TermsLink>

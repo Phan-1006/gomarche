@@ -22,9 +22,9 @@ export const HeroCarousel: React.FC = () => {
   const slide = banners[currentSlide];
 
   return (
-    <section className="relative overflow-hidden bg-gray-900 text-white rounded-2xl md:rounded-3xl shadow-xl mx-3 my-3 sm:mx-4 sm:my-4 max-w-7xl md:mx-auto">
+    <section className="relative overflow-hidden bg-gray-900 text-white rounded-2xl md:rounded-3xl shadow-xl mx-3 my-3 sm:mx-4 sm:my-4 page-width md:mx-auto">
       {/* Background Image with Gradient Overlay */}
-      <div className="relative min-h-[300px] sm:min-h-[420px] md:min-h-[480px] flex items-center">
+      <div className="relative min-h-[300px] sm:min-h-[420px] md:min-h-[480px] 2xl:min-h-[560px] min-[2000px]:min-h-[640px] flex items-center">
         <div className="absolute inset-0 z-0">
           <img
             src={slide.image}

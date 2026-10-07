@@ -84,7 +84,7 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-40 bg-white shadow-xs border-b border-gray-100">
       {/* 1. Top Announcement & Utility Bar (Exclusively Goma) */}
       <div className="bg-[#161A1D] text-white text-xs py-1.5 px-4 hidden md:block">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="page-width mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-amber-300 font-bold">
               <MapPin className="w-3.5 h-3.5 text-red-500 fill-red-500" />
@@ -172,7 +172,7 @@ export const Header: React.FC = () => {
       </div>
 
       {/* 2. Main Header: Big Logo, Rounded Search, Cart & Account */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4 flex items-center justify-between gap-2 sm:gap-4 md:gap-8">
+      <div className="page-width mx-auto px-3 sm:px-4 py-2 sm:py-4 flex items-center justify-between gap-2 sm:gap-4 md:gap-8">
         {/* Mobile menu trigger */}
         <button
           type="button"
@@ -495,7 +495,7 @@ export const Header: React.FC = () => {
 
       {/* 3. Secondary Navigation: "Tous les rayons" */}
       <div className="border-t border-gray-100 bg-[#FBFBFC]">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between text-xs font-medium">
+        <div className="page-width mx-auto px-4 flex items-center justify-between text-xs font-medium">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2">
             <button
               type="button"

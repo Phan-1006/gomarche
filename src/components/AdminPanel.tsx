@@ -208,7 +208,7 @@ export const AdminPanel: React.FC = () => {
     <div className="min-h-screen bg-gray-100/70 pb-24">
       {/* Admin Top Header Banner */}
       <div className="bg-[#161A1D] text-white border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="page-width mx-auto px-4 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {siteConfig.customLogoUrl ? (
               <img
@@ -251,7 +251,7 @@ export const AdminPanel: React.FC = () => {
 
       {/* Admin Navigation Tabs */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 overflow-x-auto no-scrollbar py-2">
+        <div className="page-width mx-auto px-4 flex items-center gap-1 overflow-x-auto no-scrollbar py-2">
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
@@ -364,7 +364,7 @@ export const AdminPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="page-width mx-auto px-4 py-8">
         {/* ===================== TAB 1: OVERVIEW ===================== */}
         {activeTab === 'overview' && (
           <div className="space-y-8">

@@ -13,7 +13,7 @@ export const CategoryShowcase: React.FC = () => {
   } = useApp();
 
   return (
-    <section className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+    <section className="page-width mx-auto px-3 sm:px-4 py-6 sm:py-8">
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 sm:mb-6 gap-2">
         <div>

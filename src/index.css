@@ -1,1 +1,7 @@
 @import "tailwindcss";
+
+/* Largeur des pages : 1280 px sur un écran courant, puis elle suit la fenêtre sur les grands
+   écrans (jusqu'à 2400 px) au lieu de laisser le site en colonne étroite au milieu. */
+@utility page-width {
+  max-width: max(80rem, min(96vw, 150rem));
+}

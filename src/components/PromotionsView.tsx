@@ -10,7 +10,7 @@ export const PromotionsView: React.FC = () => {
   const promoCategory = categories.find((c) => c.isPromoCategory);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <div className="page-width mx-auto px-4 py-8 space-y-8">
       {/* Banner */}
       <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
@@ -49,7 +49,7 @@ export const PromotionsView: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 min-[2000px]:grid-cols-8 gap-3 sm:gap-4">
           {promoProducts.map((prod) => (
             <ProductCard key={prod.id} product={prod} />
           ))}

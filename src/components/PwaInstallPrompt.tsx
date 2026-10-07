@@ -78,7 +78,7 @@ export const PwaInstallPrompt: React.FC = () => {
 
   return (
     <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white px-4 py-2.5 shadow-md border-b border-gray-700">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 text-xs">
+      <div className="page-width mx-auto flex items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-3">
           {siteConfig.pwaIconUrl || siteConfig.customLogoUrl ? (
             <img
@@ -124,7 +124,7 @@ export const PwaInstallPrompt: React.FC = () => {
       </div>
 
       {showIosSteps && (
-        <p className="max-w-7xl mx-auto mt-2 text-[11px] text-gray-200 flex items-center gap-1.5 flex-wrap">
+        <p className="page-width mx-auto mt-2 text-[11px] text-gray-200 flex items-center gap-1.5 flex-wrap">
           Touchez <Share className="w-3.5 h-3.5 inline" aria-label="Partager" /> en bas de Safari, puis
           <strong>« Sur l'écran d'accueil »</strong>.
         </p>

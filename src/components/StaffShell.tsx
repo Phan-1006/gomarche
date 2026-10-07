@@ -44,7 +44,7 @@ export const StaffShell: React.FC<StaffShellProps> = ({ roles, title, subtitle, 
   return (
     <div className="min-h-screen bg-gray-100/70 pb-24">
       <div className="bg-[#161A1D] text-white">
-        <div className="max-w-6xl mx-auto px-4 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="page-width mx-auto px-4 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {siteConfig.customLogoUrl && (
               <img src={siteConfig.customLogoUrl} alt="" className="h-11 max-w-[120px] object-contain rounded-2xl bg-white/10 p-1 border border-white/10" />
@@ -64,7 +64,7 @@ export const StaffShell: React.FC<StaffShellProps> = ({ roles, title, subtitle, 
           {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </div>
       </div>
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-5">{children}</div>
+      <div className="page-width mx-auto px-4 py-6 space-y-5">{children}</div>
     </div>
   );
 };

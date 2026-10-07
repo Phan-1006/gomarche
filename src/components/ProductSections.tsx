@@ -48,7 +48,7 @@ export const ProductSections: React.FC = () => {
   // If search or specific category filter is active, display the filtered grid
   if (searchQuery || selectedCategoryFilter) {
     return (
-      <section id={RESULTS_ID} className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+      <section id={RESULTS_ID} className="page-width mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-gray-900">
@@ -71,7 +71,7 @@ export const ProductSections: React.FC = () => {
         </div>
 
         {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 min-[2000px]:grid-cols-8 gap-2.5 sm:gap-4">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -98,7 +98,7 @@ export const ProductSections: React.FC = () => {
   return (
     <div className="space-y-8 sm:space-y-12 pb-12 sm:pb-16">
       {/* 1. Deals of the moment */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-4">
+      <section className="page-width mx-auto px-3 sm:px-4">
         <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 rounded-2xl sm:rounded-3xl p-4 sm:p-8 text-white shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 sm:mb-6 gap-3">
             <div>
@@ -134,7 +134,7 @@ export const ProductSections: React.FC = () => {
       </section>
 
       {/* 2. Food essentials */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-4">
+      <section className="page-width mx-auto px-3 sm:px-4">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-600 mb-1">
@@ -173,7 +173,7 @@ export const ProductSections: React.FC = () => {
       </section>
 
       {/* 3. Popular products */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-4">
+      <section className="page-width mx-auto px-3 sm:px-4">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-600 mb-1">
@@ -189,7 +189,7 @@ export const ProductSections: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 min-[2000px]:grid-cols-6 gap-2.5 sm:gap-4">
           {popularProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -197,7 +197,7 @@ export const ProductSections: React.FC = () => {
       </section>
 
       {/* 4. New arrivals */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-4">
+      <section className="page-width mx-auto px-3 sm:px-4">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-purple-600 mb-1">
@@ -213,7 +213,7 @@ export const ProductSections: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 min-[2000px]:grid-cols-6 gap-2.5 sm:gap-4">
           {newArrivalsProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
