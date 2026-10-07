@@ -1,4 +1,4 @@
-import { Category, Product, SiteConfig } from '../types';
+import { Category, HomeTexts, Product, SiteConfig } from '../types';
 
 export const GOMA_QUARTIERS = [
   'Les Volcans',
@@ -274,6 +274,30 @@ export const GOMA_CENTER = { lat: -1.6792, lng: 29.2228 };
 // Zone desservie : toute position hors de ce cadre est refusée
 export const GOMA_BOUNDS = { minLat: -1.76, maxLat: -1.58, minLng: 29.1, maxLng: 29.32 };
 
+export const DEFAULT_HOME_TEXTS: HomeTexts = {
+  announcement: 'Service Exclusif Ville de Goma (Nord-Kivu) • Livraison Express avec Tracé GPS',
+  logoTagline: 'Supermarché en Ligne • Service Exclusif Goma',
+  heroPromoButton: 'Promos (-40%)',
+  heroPoint1: 'Paiement Mobile Money',
+  heroPoint2: 'Livraison express Goma',
+  heroPoint3: 'Garantie Fraîcheur & Prix Bas',
+  categoriesKicker: 'Tous nos univers',
+  categoriesTitle: 'Acheter par catégorie',
+  categoriesSubtitle: 'Retrouvez tous vos produits frais, épicerie, boissons et articles du quotidien livrés à Goma.',
+  dealsBadge: 'Les Prix Choc Gomarché',
+  dealsTitle: 'Deals of the moment • Bons plans Goma',
+  dealsSubtitle: "Jusqu'à -40% de remise immédiate sur vos marques préférées. Offres valables dans la limite des stocks !",
+  essentialsTitle: 'Food essentials • Les Essentiels Alimentation',
+  essentialsSubtitle: 'Riz, huile, lait, café, pâtes : les incontournables de la famille aux prix les plus bas',
+  popularTitle: 'Popular products • Les Plus Demandés',
+  popularSubtitle: 'Les articles plébiscités par nos clients dans tous les quartiers de Goma',
+  newTitle: 'New arrivals • Nouveaux Arrivages',
+  newSubtitle: 'Derniers arrivages de produits frais, boissons et soins du quotidien',
+};
+
+// Une configuration gardée par un navigateur avant l'ajout de ces textes n'en contient pas encore.
+export const homeTextsOf = (config: Pick<SiteConfig, 'homeTexts'>): HomeTexts => ({ ...DEFAULT_HOME_TEXTS, ...(config.homeTexts || {}) });
+
 export const INITIAL_SITE_CONFIG: SiteConfig = {
   siteName: 'Gomarché Goma',
   tagline: 'Le Supermarché en Ligne Exclusif à Goma • Livraison Express',
@@ -310,6 +334,7 @@ export const INITIAL_SITE_CONFIG: SiteConfig = {
     { id: 'slot-evening', label: 'Soirée', startTime: '18:00', endTime: '20:00', priceUsd: 3.0, active: true },
   ],
 
+  homeTexts: DEFAULT_HOME_TEXTS,
   heroBanners: [
     {
       id: 'banner-1',

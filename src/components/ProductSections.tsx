@@ -2,10 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { Flame, Sparkles, TrendingUp, ShoppingBasket, ArrowRight, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ProductCard } from './ProductCard';
+import { homeTextsOf } from '../data/mockData';
 import { RESULTS_ID, scrollToResults, scrollToTop } from '../utils/scroll';
 
 export const ProductSections: React.FC = () => {
   const { products, selectedCategoryFilter, searchQuery, setSearchQuery, setActiveView, setSelectedCategoryFilter, siteConfig } = useApp();
+
+  const texts = homeTextsOf(siteConfig);
 
   // Choisir un rayon amène tout de suite à ses produits, d'où qu'on ait cliqué (menu, vignettes,
   // bas de page). Retirer les filtres ramène en haut de la boutique.
@@ -104,13 +107,13 @@ export const ProductSections: React.FC = () => {
             <div>
               <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[0.625rem] sm:text-xs font-black uppercase tracking-wider mb-2">
                 <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-300 text-amber-300" />
-                <span>Les Prix Choc <span translate="no" className="notranslate">Gomarché</span></span>
+                <span>{texts.dealsBadge}</span>
               </div>
               <h2 className="text-xl sm:text-3xl font-black tracking-tight text-white">
-                Deals of the moment • Bons plans Goma
+                {texts.dealsTitle}
               </h2>
               <p className="text-red-100 text-xs sm:text-sm mt-1">
-                Jusqu'à -40% de remise immédiate sur vos marques préférées. Offres valables dans la limite des stocks !
+                {texts.dealsSubtitle}
               </p>
             </div>
 
@@ -145,10 +148,10 @@ export const ProductSections: React.FC = () => {
               <span>Rayon Frais & Épicerie</span>
             </div>
             <h2 className="text-xl sm:text-3xl font-black text-gray-900 tracking-tight">
-              Food essentials • Les Essentiels Alimentation
+              {texts.essentialsTitle}
             </h2>
             <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-              Riz, huile, lait, café, pâtes : les incontournables de la famille aux prix les plus bas
+              {texts.essentialsSubtitle}
             </p>
           </div>
 
@@ -184,10 +187,10 @@ export const ProductSections: React.FC = () => {
               <span>Top Ventes Goma</span>
             </div>
             <h2 className="text-xl sm:text-3xl font-black text-gray-900 tracking-tight">
-              Popular products • Les Plus Demandés
+              {texts.popularTitle}
             </h2>
             <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-              Les articles plébiscités par nos clients dans tous les quartiers de Goma
+              {texts.popularSubtitle}
             </p>
           </div>
         </div>
@@ -208,10 +211,10 @@ export const ProductSections: React.FC = () => {
               <span>Nouveautés en rayon</span>
             </div>
             <h2 className="text-xl sm:text-3xl font-black text-gray-900 tracking-tight">
-              New arrivals • Nouveaux Arrivages
+              {texts.newTitle}
             </h2>
             <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-              Derniers arrivages de produits frais, boissons et soins du quotidien
+              {texts.newSubtitle}
             </p>
           </div>
         </div>

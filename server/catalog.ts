@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { Router } from 'express';
 import type { Category, GatewayKey, Product, SiteConfig, StaffMember } from '../src/types';
 import { STAFF_ROLES } from '../src/types';
-import { GOMA_BOUNDS } from '../src/data/mockData';
+import { DEFAULT_HOME_TEXTS, GOMA_BOUNDS } from '../src/data/mockData';
 import { audit, db, findStaff, isAdminEmail, newId, publicUser, save, store } from './db';
 import { FIRESTORE_UPLOAD_LIMIT } from './store';
 import { isHHMM, toMinutes } from './schedule';
@@ -177,6 +177,14 @@ catalogRouter.put('/config', writeLimiter, admin, (req: AuthedRequest, res) => {
     }
     if (!Object.values(gateways).some((g) => g.enabled)) return res.status(400).json({ error: 'Au moins un opérateur doit rester actif.' });
     next.paymentGateways = gateways;
+  }
+
+  if (b.homeTexts !== undefined) {
+    const texts = { ...cur.homeTexts };
+    for (const key of Object.keys(DEFAULT_HOME_TEXTS) as (keyof typeof DEFAULT_HOME_TEXTS)[]) {
+      if (b.homeTexts?.[key] !== undefined) texts[key] = str(b.homeTexts[key], 200);
+    }
+    next.homeTexts = texts;
   }
 
   if (b.networkIcons !== undefined) {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
+import { homeTextsOf } from '../data/mockData';
 import { ArrowRight, Sparkles, Flame, ChevronRight } from 'lucide-react';
 
 export const CategoryShowcase: React.FC = () => {
@@ -11,6 +12,7 @@ export const CategoryShowcase: React.FC = () => {
     setActiveView,
     siteConfig,
   } = useApp();
+  const texts = homeTextsOf(siteConfig);
 
   return (
     <section className="page-width mx-auto px-3 sm:px-4 py-6 sm:py-8">
@@ -19,13 +21,13 @@ export const CategoryShowcase: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#E2001A] mb-1">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Tous nos univers</span>
+            <span>{texts.categoriesKicker}</span>
           </div>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
-            Acheter par catégorie
+            {texts.categoriesTitle}
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
-            Retrouvez tous vos produits frais, épicerie, boissons et articles du quotidien livrés à Goma.
+            {texts.categoriesSubtitle}
           </p>
         </div>
 

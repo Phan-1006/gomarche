@@ -47,6 +47,7 @@ import { isActiveOrder } from '../utils/orders';
 import { ProductPhotoPicker } from './ProductPhotoPicker';
 import { StaffShell } from './StaffShell';
 import { ScheduleTab } from './admin/ScheduleTab';
+import { HomeTab } from './admin/HomeTab';
 import { PaymentsTab } from './admin/PaymentsTab';
 import { OrdersTab } from './admin/OrdersTab';
 import { StaffTab } from './admin/StaffTab';
@@ -72,7 +73,7 @@ export const AdminPanel: React.FC = () => {
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'store_info' | 'delivery_slots' | 'branding' | 'currency' | 'categories_agents' | 'products' | 'payment_apis' | 'orders' | 'security'
+    'overview' | 'store_info' | 'home_page' | 'delivery_slots' | 'branding' | 'currency' | 'categories_agents' | 'products' | 'payment_apis' | 'orders' | 'security'
   >('overview');
 
   // Category modal
@@ -287,6 +288,17 @@ export const AdminPanel: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => setActiveTab('home_page')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shrink-0 ${
+              activeTab === 'home_page' ? 'bg-red-50 text-[#E2001A]' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4" />
+            <span>Page d'accueil</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('branding')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shrink-0 ${
               activeTab === 'branding' ? 'bg-red-50 text-[#E2001A]' : 'text-gray-600 hover:bg-gray-100'
@@ -492,6 +504,8 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
         )}
+
+        {activeTab === 'home_page' && <HomeTab />}
 
         {activeTab === 'delivery_slots' && <ScheduleTab />}
 

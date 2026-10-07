@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { AppView, useApp } from '../context/AppContext';
 import { ROLE_LABELS } from '../types';
+import { homeTextsOf } from '../data/mockData';
 import { staffLinksFor } from '../utils/staffLinks';
 import { AirtelMoneyLogo, OrangeMoneyLogo, MpesaLogo, AfriMoneyLogo } from './MobileMoneyLogos';
 
@@ -88,7 +89,7 @@ export const Header: React.FC = () => {
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-amber-300 font-bold">
               <MapPin className="w-3.5 h-3.5 text-red-500 fill-red-500" />
-              <span>Service Exclusif Ville de Goma (Nord-Kivu) • Livraison Express avec Tracé GPS</span>
+              <span>{homeTextsOf(siteConfig).announcement}</span>
             </span>
             <span className="text-gray-500">|</span>
             <span className="text-gray-300">
@@ -233,7 +234,7 @@ export const Header: React.FC = () => {
                   </span>
                 </div>
                 <span className="text-[0.5625rem] sm:text-[0.6875rem] uppercase tracking-wider font-bold text-gray-500 hidden sm:block">
-                  Supermarché en Ligne • Service Exclusif Goma
+                  {homeTextsOf(siteConfig).logoTagline}
                 </span>
               </div>
             </div>

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ArrowRight, ShieldCheck, Zap, Truck, Tag } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { homeTextsOf } from '../data/mockData';
 
 export const HeroCarousel: React.FC = () => {
   const { siteConfig, setActiveView, setSelectedCategoryFilter, categories, formatPrice } = useApp();
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const banners = siteConfig.heroBanners || [];
+  const texts = homeTextsOf(siteConfig);
 
   // Auto-advance slides every 6s
   useEffect(() => {
@@ -19,7 +21,8 @@ export const HeroCarousel: React.FC = () => {
 
   if (banners.length === 0) return null;
 
-  const slide = banners[currentSlide];
+  // Une bannière supprimée par l'admin pendant la visite ne doit pas laisser l'index dans le vide.
+  const slide = banners[currentSlide % banners.length];
 
   return (
     <section className="relative overflow-hidden bg-gray-900 text-white rounded-2xl md:rounded-3xl shadow-xl mx-3 my-3 sm:mx-4 sm:my-4 page-width md:mx-auto">
@@ -76,7 +79,7 @@ export const HeroCarousel: React.FC = () => {
               onClick={() => setActiveView('promotions')}
               className="px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-full font-bold text-xs sm:text-sm bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/30 transition-colors cursor-pointer"
             >
-              Promos (-40%)
+              {texts.heroPromoButton}
             </button>
           </div>
 
@@ -84,15 +87,15 @@ export const HeroCarousel: React.FC = () => {
           <div className="mt-5 sm:mt-8 pt-4 sm:pt-6 border-t border-white/20 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 text-[0.6875rem] sm:text-xs text-gray-300">
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
-              <span className="truncate sm:overflow-visible">Paiement Mobile Money</span>
+              <span className="truncate sm:overflow-visible">{texts.heroPoint1}</span>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
-              <span className="truncate sm:overflow-visible">Livraison express Goma</span>
+              <span className="truncate sm:overflow-visible">{texts.heroPoint2}</span>
             </div>
             <div className="hidden sm:flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
-              <span>Garantie Fraîcheur & Prix Bas</span>
+              <span>{texts.heroPoint3}</span>
             </div>
           </div>
         </div>

@@ -270,6 +270,28 @@ export interface HeroBanner {
   badgeBg?: string;
 }
 
+// Textes de la page d'accueil modifiables par l'admin.
+export interface HomeTexts {
+  announcement: string; // bandeau tout en haut (ordinateur)
+  logoTagline: string; // petite ligne sous le logo
+  heroPromoButton: string; // second bouton de la bannière
+  heroPoint1: string;
+  heroPoint2: string;
+  heroPoint3: string;
+  categoriesKicker: string;
+  categoriesTitle: string;
+  categoriesSubtitle: string;
+  dealsBadge: string;
+  dealsTitle: string;
+  dealsSubtitle: string;
+  essentialsTitle: string;
+  essentialsSubtitle: string;
+  popularTitle: string;
+  popularSubtitle: string;
+  newTitle: string;
+  newSubtitle: string;
+}
+
 export type ThemeStyle = 'classic_red' | 'emerald_fresh' | 'navy_modern' | 'warm_gold';
 
 export interface SiteConfig {
@@ -297,6 +319,7 @@ export interface SiteConfig {
   deliverySlots: DeliverySlotConfig[];
 
   heroBanners: HeroBanner[];
+  homeTexts: HomeTexts;
   paymentGateways: PaymentGatewayConfig;
   codEnabled: boolean; // paiement à la livraison (garantie = frais de livraison)
   paymentTimeoutMinutes: number; // annulation auto d'une commande impayée

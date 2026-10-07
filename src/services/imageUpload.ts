@@ -29,8 +29,8 @@ export function shrinkImage(file: File, maxSide = 1200, quality = 0.85): Promise
   });
 }
 
-export async function uploadImageFile(file: File): Promise<string> {
-  const imageBase64 = await shrinkImage(file);
+export async function uploadImageFile(file: File, maxSide = 1200, quality = 0.85): Promise<string> {
+  const imageBase64 = await shrinkImage(file, maxSide, quality);
   const { url } = await api<{ url: string }>('POST', '/upload', { imageBase64 });
   return url;
 }

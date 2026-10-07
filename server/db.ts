@@ -101,6 +101,7 @@ export function normalizeConfig(raw: any): SiteConfig {
   }
   cfg.deliveryHours = { ...base.deliveryHours, ...(src.deliveryHours || {}) };
   cfg.storeLocation = { ...base.storeLocation, ...(src.storeLocation || {}) };
+  cfg.homeTexts = { ...base.homeTexts, ...(src.homeTexts || {}) };
   cfg.networkIcons = { ...base.networkIcons, ...(src.networkIcons || {}) };
 
   if (Array.isArray(src.deliverySlots) && src.deliverySlots.length) {
